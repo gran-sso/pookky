@@ -1,0 +1,37 @@
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+*.env
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE & Editors
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Temporary & Scratch files
+scratch/
+tmp/
+temp/
+*.log
+error_log
+
+# User uploaded media (keep folder structure and index.html / .gitkeep)
+uploads/*
+!uploads/index.html
+!uploads/.gitkeep
+
+# Database dumps / SQL backups (keep initial schema if intended, ignore backups)
+*.sql.gz
+*.sql.tar.gz
+*.bak

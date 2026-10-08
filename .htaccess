@@ -1,0 +1,43 @@
+# Veesta E-Commerce Apache Configuration
+# Increase upload limits for high-resolution product photography
+
+<IfModule mod_php.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 256M
+    php_value memory_limit 512M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value max_file_uploads 100
+</IfModule>
+
+<IfModule mod_php8.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 256M
+    php_value memory_limit 512M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value max_file_uploads 100
+</IfModule>
+
+<IfModule mod_php7.c>
+    php_value upload_max_filesize 256M
+    php_value post_max_size 256M
+    php_value memory_limit 512M
+    php_value max_execution_time 300
+    php_value max_input_time 300
+    php_value max_file_uploads 100
+</IfModule>
+
+# Security: Disable direct directory listing
+Options -Indexes
+
+# Security: Deny public HTTP access to sensitive environment & config files
+<FilesMatch "^\.|\.(env|ini|log|sql|bak)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
