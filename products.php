@@ -15,6 +15,7 @@ $selected_fabrics = $_GET['fabrics'] ?? [];
 $price_min = isset($_GET['price_min']) ? (float)$_GET['price_min'] : 0;
 $price_max = isset($_GET['price_max']) ? (float)$_GET['price_max'] : 5000;
 $sort_by = $_GET['sort'] ?? 'newest';
+$product_type = trim($_GET['type'] ?? '');
 
 try {
     // 1. Build Query dynamically
@@ -27,6 +28,12 @@ try {
         WHERE p.status = 1
     ";
     $params = [];
+
+    // Filter by Product Type (e.g. combo or standard)
+    if (!empty($product_type)) {
+        $query_str .= " AND p.product_type = ? ";
+        $params[] = $product_type;
+    }
 
     // Filter by Category
     if (!empty($category_slug)) {

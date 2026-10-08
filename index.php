@@ -60,6 +60,18 @@ try {
     ");
     $best_sellers = $b_stmt->fetchAll();
 
+    // 4. Value Bundles & Super Saver Combos
+    $c_stmt = $pdo->query("
+        SELECT p.*, c.name as category_name, 
+        (SELECT image_path FROM product_images WHERE product_id = p.id ORDER BY is_featured DESC LIMIT 1) as main_image,
+        (SELECT COUNT(*) FROM combo_components WHERE combo_product_id = p.id) as component_count
+        FROM products p 
+        JOIN categories c ON p.category_id = c.id 
+        WHERE p.status = 1 AND p.product_type = 'combo'
+        ORDER BY p.is_featured DESC, p.id DESC LIMIT 4
+    ");
+    $combo_products = $c_stmt->fetchAll();
+
 } catch (PDOException $e) {
     // Fail silently
 }
@@ -221,6 +233,78 @@ try {
                                     <span class="price-original"><?php echo format_price($prod['regular_price']); ?></span>
                                 <?php endif; ?>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
+<!-- Value Bundles & Super Saver Combos Spotlight -->
+<?php if (!empty($combo_products)): ?>
+<section class="py-4 py-md-5 combo-spotlight-section border-top border-bottom" style="background: linear-gradient(180deg, #fff5f8 0%, #ffffff 100%);">
+    <div class="container">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4">
+            <div>
+                <span class="badge bg-purple rounded-pill px-3 py-1 mb-2 shadow-sm" style="font-size: 11px; letter-spacing: 0.5px;">
+                    <i class="bi bi-stars me-1"></i> SUPER SAVER DEALS
+                </span>
+                <h2 class="section-title mb-1">Value Bundles & Combo Sets</h2>
+                <p class="text-muted mb-0 brand-accent-tag"><?php echo e(get_setting('home_tagline_combos', 'Curate your favorite matching pieces & save more together')); ?></p>
+            </div>
+            <a href="products.php?type=combo" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 mt-3 mt-md-0 align-self-start align-self-md-auto">
+                Explore All Bundles <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        
+        <div class="row g-3 g-md-4">
+            <?php foreach ($combo_products as $prod): ?>
+                <?php 
+                    $savings_pct = 0;
+                    if (!empty($prod['offer_price']) && !empty($prod['regular_price']) && $prod['regular_price'] > $prod['offer_price']) {
+                        $savings_pct = round((($prod['regular_price'] - $prod['offer_price']) / $prod['regular_price']) * 100);
+                    }
+                ?>
+                <div class="col-6 col-md-3">
+                    <div class="card product-card h-100 combo-product-card shadow-sm border-0" style="background: #ffffff; border-radius: 12px; overflow: hidden;">
+                        <div class="img-container position-relative">
+                            <div class="badge-overlay d-flex flex-column gap-1 align-items-start">
+                                <span class="badge bg-purple rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;">
+                                    <i class="bi bi-stars"></i> <?php echo !empty($prod['component_count']) ? intval($prod['component_count']) . '-Piece Set' : 'COMBO SET'; ?>
+                                </span>
+                                <?php if ($savings_pct > 0): ?>
+                                    <span class="badge bg-danger rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;">
+                                        SAVE <?php echo $savings_pct; ?>%
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="wishlist-overlay wishlist-toggle" data-product-id="<?php echo $prod['id']; ?>">
+                                <i class="bi bi-heart"></i>
+                            </div>
+                            <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
+                                <?php if ($prod['main_image']): ?>
+                                    <img src="uploads/<?php echo e($prod['main_image']); ?>" alt="<?php echo e($prod['name']); ?>" loading="lazy">
+                                <?php else: ?>
+                                    <div class="w-100 h-100 bg-secondary d-flex align-items-center justify-content-center text-white"><i class="bi bi-image fs-1"></i></div>
+                                <?php endif; ?>
+                            </a>
+                        </div>
+                        <div class="product-details text-center d-flex flex-column p-3">
+                            <span class="product-category text-purple fw-semibold"><i class="bi bi-layers me-1"></i><?php echo e($prod['category_name']); ?></span>
+                            <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
+                                <h6 class="product-title text-truncate-2"><?php echo e($prod['name']); ?></h6>
+                            </a>
+                            <div class="price-container justify-content-center mb-3">
+                                <span class="price-regular"><?php echo format_price($prod['offer_price'] ?? $prod['regular_price']); ?></span>
+                                <?php if ($prod['offer_price']): ?>
+                                    <span class="price-original"><?php echo format_price($prod['regular_price']); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>" class="btn btn-sm btn-brand-outline rounded-pill w-100 mt-auto py-2" style="font-size: 12px; font-weight: 600;">
+                                <i class="bi bi-sliders2-vertical me-1"></i> Customise Bundle
+                            </a>
                         </div>
                     </div>
                 </div>
