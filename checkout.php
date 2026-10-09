@@ -773,6 +773,15 @@ require_once __DIR__ . '/includes/header.php';
                     <h5 class="fw-bold mb-3 text-dark border-bottom pb-2">
                         <i class="bi bi-credit-card text-rose me-2"></i> <?php echo $is_logged_in ? '2.' : '3.'; ?> Payment Method
                     </h5>
+
+                    <?php if (defined('SITE_NOTICE_ENABLED') && SITE_NOTICE_ENABLED): ?>
+                        <div class="alert alert-warning border d-flex align-items-center gap-2 mb-3 py-2 px-3 small rounded-3">
+                            <i class="bi bi-info-circle-fill fs-5 text-warning flex-shrink-0"></i>
+                            <div>
+                                <strong>Preview & Testing Notice:</strong> <?php echo e(SITE_NOTICE_TEXT); ?>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                     
                     <?php if (RAZORPAY_ENABLED): ?>
                         <div class="border rounded-3 p-3 bg-light-subtle mb-3 payment-option-card">

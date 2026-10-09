@@ -56,7 +56,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'google_client_id',
                 'google_client_secret',
                 'google_auth_enabled',
-                'nav_menu_categories'
+                'nav_menu_categories',
+                'site_notice_enabled',
+                'site_notice_badge',
+                'site_notice_text',
+                'site_notice_type',
+                'site_notice_dismissible'
             ];
 
             foreach ($keys as $key) {
@@ -87,6 +92,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if ($key === 'razorpay_enabled') {
                     $val = isset($_POST['razorpay_enabled']) ? '1' : '0';
+                }
+                if ($key === 'site_notice_enabled') {
+                    $val = isset($_POST['site_notice_enabled']) ? '1' : '0';
+                }
+                if ($key === 'site_notice_dismissible') {
+                    $val = isset($_POST['site_notice_dismissible']) ? '1' : '0';
                 }
                 
                 // Verify key exists, else insert
@@ -141,6 +152,13 @@ $webhook_url = $protocol . $host . rtrim(dirname(dirname($_SERVER['REQUEST_URI']
 $all_active_categories = $pdo->query("SELECT id, name, slug FROM categories WHERE status = 1 AND parent_id IS NULL ORDER BY sort_order ASC, id ASC")->fetchAll();
 $saved_nav_categories_str = get_setting('nav_menu_categories', '1,2,3');
 $saved_nav_ids = !empty($saved_nav_categories_str) ? array_map('intval', explode(',', $saved_nav_categories_str)) : [1, 2, 3];
+
+// Site Notice / Testing Banner configuration
+$notice_enabled = get_setting('site_notice_enabled', '1') === '1';
+$notice_badge = get_setting('site_notice_badge', 'PRE-LAUNCH TESTING');
+$notice_text = get_setting('site_notice_text', 'Welcome to Pookky! We are currently undergoing final testing & verification before our official launch. Orders placed during this period are for demonstration/testing and will not be charged or processed.');
+$notice_type = get_setting('site_notice_type', 'amber');
+$notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
 ?>
 
 <div class="row g-4 justify-content-center" style="max-width: 1000px; margin: 0 auto;">
@@ -148,7 +166,7 @@ $saved_nav_ids = !empty($saved_nav_categories_str) ? array_map('intval', explode
         <div class="d-flex justify-content-between align-items-center mb-2">
             <div>
                 <h4 class="fw-bold mb-1"><i class="bi bi-sliders me-2 text-brand"></i> Store & Platform Settings</h4>
-                <p class="text-muted small mb-0">Configure store identity, automated shipping calculation, Razorpay online payments, and 3rd-party integrations.</p>
+                <p class="text-muted small mb-0">Configure store identity, testing banner, automated shipping calculation, Razorpay online payments, and 3rd-party integrations.</p>
             </div>
             <a href="pages.php" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                 <i class="bi bi-file-earmark-richtext me-1"></i> Manage CMS Pages
@@ -164,6 +182,11 @@ $saved_nav_ids = !empty($saved_nav_categories_str) ? array_map('intval', explode
                 <li class="nav-item" role="presentation">
                     <button class="nav-link active rounded-pill px-3 py-2 fw-semibold" id="tab-general-btn" data-bs-toggle="pill" data-bs-target="#tab-general" type="button" role="tab" aria-controls="tab-general" aria-selected="true">
                         <i class="bi bi-shop me-1"></i> General & Tax
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link rounded-pill px-3 py-2 fw-semibold text-warning" id="tab-notice-btn" data-bs-toggle="pill" data-bs-target="#tab-notice" type="button" role="tab" aria-controls="tab-notice" aria-selected="false">
+                        <i class="bi bi-megaphone-fill me-1"></i> Pre-Launch Banner
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -256,7 +279,68 @@ $saved_nav_ids = !empty($saved_nav_categories_str) ? array_map('intval', explode
                     </div>
                 </div>
 
-                <!-- 2. SOCIAL PROFILES TAB -->
+                <!-- 2. SITE NOTICE / PRE-LAUNCH TESTING BANNER TAB -->
+                <div class="tab-pane fade" id="tab-notice" role="tabpanel" aria-labelledby="tab-notice-btn">
+                    <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px; border-left: 4px solid #F59E0B !important;">
+                        <div class="d-flex align-items-center justify-content-between pb-2 border-bottom mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-1 text-dark">
+                                    <i class="bi bi-megaphone-fill text-warning me-2"></i> Pre-Launch / Testing Announcement Banner
+                                </h5>
+                                <p class="text-muted small mb-0">Display a prominent banner across the top of all public pages informing visitors or payment gateway evaluators that the site is in pre-launch testing.</p>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="site_notice_enabled" name="site_notice_enabled" value="1" <?php echo $notice_enabled ? 'checked' : ''; ?> style="width: 2.5em; height: 1.3em;">
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label for="site_notice_badge" class="form-label fw-bold small">Pill Badge Text</label>
+                                <input type="text" class="form-control" id="site_notice_badge" name="site_notice_badge" value="<?php echo e($notice_badge); ?>" placeholder="e.g. PRE-LAUNCH TESTING">
+                                <div class="form-text small text-muted">Highlighted badge label displayed at the front.</div>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="site_notice_type" class="form-label fw-bold small">Visual Color Theme</label>
+                                <select class="form-select" id="site_notice_type" name="site_notice_type">
+                                    <option value="amber" <?php echo $notice_type === 'amber' ? 'selected' : ''; ?>>Amber Gold (Testing & Beta - Recommended)</option>
+                                    <option value="brand" <?php echo $notice_type === 'brand' ? 'selected' : ''; ?>>Rose Brand (Soft Pink & Berry)</option>
+                                    <option value="dark" <?php echo $notice_type === 'dark' ? 'selected' : ''; ?>>Charcoal Dark (High Contrast)</option>
+                                    <option value="info" <?php echo $notice_type === 'info' ? 'selected' : ''; ?>>Azure Blue (Notice & Info)</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label fw-bold small">Visitor Dismiss Option</label>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" id="site_notice_dismissible" name="site_notice_dismissible" value="1" <?php echo $notice_dismissible ? 'checked' : ''; ?>>
+                                    <label class="form-check-label small" for="site_notice_dismissible">Allow visitors to temporarily dismiss banner (via X button)</label>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label for="site_notice_text" class="form-label fw-bold small">Banner Message Text <span class="text-danger">*</span></label>
+                                <textarea class="form-control" id="site_notice_text" name="site_notice_text" rows="3" placeholder="Enter message to display..."><?php echo e($notice_text); ?></textarea>
+                                <div class="form-text small text-muted">Clear disclosure helps Razorpay verification officers understand the website's stage while reviewing your merchant account.</div>
+                            </div>
+
+                            <div class="col-12 mt-3">
+                                <div class="alert alert-light border p-3 rounded-3 mb-0">
+                                    <div class="fw-bold small text-muted text-uppercase mb-2"><i class="bi bi-eye me-1"></i> Live Appearance Preview:</div>
+                                    <div class="p-2 rounded text-center small fw-medium" style="background: linear-gradient(90deg, #FFFBEB 0%, #FEF3C7 50%, #FFFBEB 100%); color: #92400E; border: 1px solid #FDE68A;">
+                                        <span class="badge rounded-pill px-2 py-1 text-uppercase fw-bold me-1" style="background-color: #D97706; color: #fff; font-size: 10px;">
+                                            <i class="bi bi-cone-striped me-1"></i>PRE-LAUNCH TESTING
+                                        </span>
+                                        <span>Welcome to Pookky! We are currently undergoing final testing & verification before our official launch. Orders placed during this period are for demonstration/testing and will not be charged or processed.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. SOCIAL PROFILES TAB -->
                 <div class="tab-pane fade" id="tab-social" role="tabpanel" aria-labelledby="tab-social-btn">
                     <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px;">
                         <h5 class="fw-bold mb-3 text-dark pb-2 border-bottom">

@@ -70,4 +70,12 @@ define('RAZORPAY_WEBHOOK_SECRET', env('RAZORPAY_WEBHOOK_SECRET') ?: get_setting(
 define('RAZORPAY_MODE', get_setting('razorpay_mode', 'test'));
 $razorpay_enabled_setting = get_setting('razorpay_enabled', '0');
 define('RAZORPAY_ENABLED', (bool)($razorpay_enabled_setting === '1' && !empty(RAZORPAY_KEY_ID)));
+
+// Site Notice / Pre-Launch Testing Banner Configuration
+define('SITE_NOTICE_ENABLED', (bool)(get_setting('site_notice_enabled', '1') === '1'));
+define('SITE_NOTICE_BADGE', get_setting('site_notice_badge', 'PRE-LAUNCH TESTING'));
+define('SITE_NOTICE_TEXT', get_setting('site_notice_text', 'Welcome to Pookky! We are currently undergoing final testing & verification before our official launch. Orders placed during this period are for demonstration/testing and will not be charged or processed.'));
+define('SITE_NOTICE_TYPE', get_setting('site_notice_type', 'amber')); // 'amber', 'brand', 'dark', 'info'
+define('SITE_NOTICE_DISMISSIBLE', (bool)(get_setting('site_notice_dismissible', '1') === '1'));
 ?>
+

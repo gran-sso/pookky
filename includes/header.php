@@ -244,6 +244,64 @@ switch ($theme_font_pairing) {
 </head>
 <body>
 
+    <?php if (defined('SITE_NOTICE_ENABLED') && SITE_NOTICE_ENABLED && !empty(SITE_NOTICE_TEXT)): ?>
+        <?php
+        $notice_type = defined('SITE_NOTICE_TYPE') ? SITE_NOTICE_TYPE : 'amber';
+        $notice_badge = defined('SITE_NOTICE_BADGE') ? SITE_NOTICE_BADGE : 'PRE-LAUNCH TESTING';
+        $notice_dismissible = defined('SITE_NOTICE_DISMISSIBLE') ? SITE_NOTICE_DISMISSIBLE : true;
+        
+        $banner_bg = 'background: linear-gradient(90deg, #FFFBEB 0%, #FEF3C7 50%, #FFFBEB 100%); color: #92400E; border-bottom: 1px solid #FDE68A;';
+        $badge_style = 'background-color: #D97706; color: #FFFFFF;';
+        $icon_name = 'bi-cone-striped';
+        
+        if ($notice_type === 'brand') {
+            $banner_bg = 'background: linear-gradient(90deg, #FFF1F5 0%, #FFE4EC 50%, #FFF1F5 100%); color: var(--brand-primary); border-bottom: 1px solid #FBCFE8;';
+            $badge_style = 'background-color: var(--brand-primary); color: #FFFFFF;';
+            $icon_name = 'bi-stars';
+        } elseif ($notice_type === 'dark') {
+            $banner_bg = 'background: linear-gradient(90deg, #18181B 0%, #27272A 50%, #18181B 100%); color: #F4F4F5; border-bottom: 1px solid #3F3F46;';
+            $badge_style = 'background-color: #F59E0B; color: #18181B; font-weight: 700;';
+            $icon_name = 'bi-info-circle-fill';
+        } elseif ($notice_type === 'info') {
+            $banner_bg = 'background: linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 50%, #EFF6FF 100%); color: #1E40AF; border-bottom: 1px solid #BFDBFE;';
+            $badge_style = 'background-color: #2563EB; color: #FFFFFF;';
+            $icon_name = 'bi-info-circle-fill';
+        }
+        ?>
+        <!-- Site Pre-Launch Testing / Announcement Banner -->
+        <div id="sitePreviewBanner" class="site-notice-banner py-2 px-3 position-relative text-center small fw-medium" style="<?php echo $banner_bg; ?> font-size: 13px; z-index: 1040; transition: all 0.3s ease;">
+            <div class="container d-flex align-items-center justify-content-center flex-wrap gap-2 pe-md-4">
+                <span class="badge rounded-pill px-2 py-1 text-uppercase fw-bold shadow-sm" style="<?php echo $badge_style; ?> font-size: 10.5px; letter-spacing: 0.5px;">
+                    <i class="bi <?php echo $icon_name; ?> me-1"></i><?php echo e($notice_badge); ?>
+                </span>
+                <span class="notice-text">
+                    <?php echo e(SITE_NOTICE_TEXT); ?>
+                </span>
+                <?php if ($notice_dismissible): ?>
+                    <button type="button" class="btn-close position-absolute top-50 end-0 translate-middle-y me-3 d-none d-md-inline-block" aria-label="Dismiss banner" onclick="dismissSiteNotice()" style="font-size: 0.65rem; opacity: 0.75;"></button>
+                <?php endif; ?>
+            </div>
+        </div>
+        <script>
+            (function() {
+                try {
+                    if (sessionStorage.getItem('pookky_site_notice_dismissed') === 'true' && <?php echo $notice_dismissible ? 'true' : 'false'; ?>) {
+                        var banner = document.getElementById('sitePreviewBanner');
+                        if (banner) banner.style.display = 'none';
+                    }
+                } catch(e){}
+            })();
+            function dismissSiteNotice() {
+                var banner = document.getElementById('sitePreviewBanner');
+                if (banner) {
+                    banner.style.opacity = '0';
+                    setTimeout(function() { banner.style.display = 'none'; }, 250);
+                }
+                try { sessionStorage.setItem('pookky_site_notice_dismissed', 'true'); } catch(e){}
+            }
+        </script>
+    <?php endif; ?>
+
     <!-- Main Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light navbar-veesta sticky-top">
         <div class="container">

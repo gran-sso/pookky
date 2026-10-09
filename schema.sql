@@ -425,7 +425,12 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('address_company', 'Pookky Innerwear Mfg Ltd, Phase 2, Industrial Area, Bangalore, Karnataka - 560001'),
 ('google_client_id', ''),
 ('google_client_secret', ''),
-('google_auth_enabled', '0');
+('google_auth_enabled', '0'),
+('site_notice_enabled', '1'),
+('site_notice_badge', 'PRE-LAUNCH TESTING'),
+('site_notice_text', 'Welcome to Pookky! We are currently undergoing final testing & verification before our official launch. Orders placed during this period are for demonstration/testing and will not be charged or processed.'),
+('site_notice_type', 'amber'),
+('site_notice_dismissible', '1');
 
 -- Default Content Pages
 INSERT INTO pages (slug, title, content, seo_title, seo_description) VALUES
