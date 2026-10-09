@@ -118,13 +118,15 @@ switch ($theme_font_pairing) {
     <meta name="description" content="<?php echo isset($meta_desc) ? e($meta_desc) : 'Discover premium comfort, elegant fits, and luxurious fabrics with Pookky innerwear.'; ?>">
     <meta name="csrf-token" content="<?php echo generate_csrf_token(); ?>">
     <link rel="icon" type="image/png" href="assets/images/logo.png">
+    <!-- Preconnect for Critical External CDNs -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Dynamic Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="<?php echo $google_font_url; ?>" rel="stylesheet">
     <!-- Global Style -->
     <link rel="stylesheet" href="assets/css/style.css?v=2.5">

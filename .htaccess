@@ -1,6 +1,11 @@
-# Veesta E-Commerce Apache Configuration
-# Increase upload limits for high-resolution product photography
+# ==============================================================================
+# Pookky / Veesta E-Commerce Apache Configuration
+# High-Performance Server Optimization & Security Rules
+# ==============================================================================
 
+# ------------------------------------------------------------------------------
+# 1. PHP Runtime & Upload Limit Settings
+# ------------------------------------------------------------------------------
 <IfModule mod_php.c>
     php_value upload_max_filesize 256M
     php_value post_max_size 256M
@@ -28,11 +33,124 @@
     php_value max_file_uploads 100
 </IfModule>
 
-# Security: Disable direct directory listing
+# ------------------------------------------------------------------------------
+# 2. GZIP / DEFLATE Real-time Asset Compression
+# ------------------------------------------------------------------------------
+<IfModule mod_deflate.c>
+    # Force compression for mangled headers
+    <IfModule mod_setenvif.c>
+        <IfModule mod_headers.c>
+            SetEnvIfNoCase ^(Accept-EncodXng|X-cept-Encoding|X{15}|~{15}|-{15})$ ^((gzip|deflate)\s*,?\s*)+|[X~-]{4,13}$ HAVE_Accept-Encoding
+            RequestHeader append Accept-Encoding "gzip,deflate" env=HAVE_Accept-Encoding
+        </IfModule>
+    </IfModule>
+
+    # Compress HTML, CSS, JavaScript, Text, XML, JSON, SVG and Fonts
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE application/ld+json
+    AddOutputFilterByType DEFLATE application/vnd.ms-fontobject
+    AddOutputFilterByType DEFLATE application/x-font-ttf
+    AddOutputFilterByType DEFLATE application/x-font-opentype
+    AddOutputFilterByType DEFLATE font/ttf
+    AddOutputFilterByType DEFLATE font/otf
+    AddOutputFilterByType DEFLATE font/opentype
+    AddOutputFilterByType DEFLATE font/woff
+    AddOutputFilterByType DEFLATE font/woff2
+    AddOutputFilterByType DEFLATE image/svg+xml
+    AddOutputFilterByType DEFLATE image/x-icon
+
+    # Remove browser bugs for older Netscape browsers
+    BrowserMatch ^Mozilla/4 gzip-only-text/html
+    BrowserMatch ^Mozilla/4\.0[678] no-gzip
+    BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 3. Leverage Browser Caching (Expires Headers)
+# ------------------------------------------------------------------------------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresDefault "access plus 1 month"
+
+    # HTML Documents (keep fresh)
+    ExpiresByType text/html "access plus 0 seconds"
+
+    # Data / Feeds
+    ExpiresByType text/xml "access plus 0 seconds"
+    ExpiresByType application/xml "access plus 0 seconds"
+    ExpiresByType application/json "access plus 0 seconds"
+
+    # Favicon & App Icons
+    ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType image/vnd.microsoft.icon "access plus 1 year"
+
+    # Images & Media
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/jpg "access plus 1 year"
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/gif "access plus 1 year"
+    ExpiresByType image/webp "access plus 1 year"
+    ExpiresByType image/avif "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+    ExpiresByType video/mp4 "access plus 1 year"
+    ExpiresByType video/webm "access plus 1 year"
+
+    # Web Fonts
+    ExpiresByType font/ttf "access plus 1 year"
+    ExpiresByType font/otf "access plus 1 year"
+    ExpiresByType font/woff "access plus 1 year"
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType application/font-woff "access plus 1 year"
+    ExpiresByType application/font-woff2 "access plus 1 year"
+    ExpiresByType application/vnd.ms-fontobject "access plus 1 year"
+
+    # CSS & JavaScript
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType application/x-javascript "access plus 1 month"
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 4. HTTP Headers for Caching & Security
+# ------------------------------------------------------------------------------
+<IfModule mod_headers.c>
+    # Ensure proxies and CDNs distinguish gzipped content
+    Header append Vary: Accept-Encoding
+
+    # 1 Year Cache Control for Static Assets
+    <FilesMatch "\.(ico|jpe?g|png|gif|webp|avif|svg|mp4|webm|woff|woff2|ttf|eot|otf)$">
+        Header set Cache-Control "max-age=31536000, public, immutable"
+    </FilesMatch>
+
+    # 1 Month Cache Control for Styles & Scripts
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "max-age=2592000, public"
+    </FilesMatch>
+
+    # Security Headers
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
+# ------------------------------------------------------------------------------
+# 5. Security: Disable Directory Indexing & Protect Sensitive Files
+# ------------------------------------------------------------------------------
 Options -Indexes
 
-# Security: Deny public HTTP access to sensitive environment & config files
-<FilesMatch "^\.|\.(env|ini|log|sql|bak)$">
+# Deny public HTTP access to sensitive environment, config, and source files
+<FilesMatch "^\.|\.(env|ini|log|sql|bak|sh|git|md|yml|yaml)$">
     <IfModule mod_authz_core.c>
         Require all denied
     </IfModule>
