@@ -286,38 +286,56 @@ try {
     $variants_list->execute([$product_id]);
     $variants = $variants_list->fetchAll();
 
-    // 1. Fetch Sizes for this product's category / type
-    $cat_name = trim($product['category_name'] ?? '');
-    $parent_cat_name = trim($product['parent_category_name'] ?? '');
-
-    if (!empty($cat_name) || !empty($parent_cat_name)) {
-        // Use INSTR(?, s.category_type) > 0 instead of ? LIKE CONCAT(...) to prevent MySQL 8 collation/syntax conflicts
-        $sz_stmt = $pdo->prepare("
-            SELECT DISTINCT s.* 
-            FROM sizes s 
-            WHERE LOWER(s.category_type) = LOWER(?) 
-               OR LOWER(s.category_type) = LOWER(?)
-               OR s.category_type LIKE CONCAT('%', ?, '%')
-               OR INSTR(?, s.category_type) > 0
-               OR s.id IN (SELECT size_id FROM product_variants WHERE product_id = ?)
-            ORDER BY s.category_type ASC, s.id ASC
-        ");
-        $sz_stmt->execute([$cat_name, $parent_cat_name, $cat_name, $cat_name, $product_id]);
-        $matching_sizes = $sz_stmt->fetchAll();
-        if (function_exists('sort_sizes')) {
-            sort_sizes($matching_sizes);
-        }
-    }
-
+    // Fetch all sizes from master table
     $all_sizes = $pdo->query("SELECT * FROM sizes ORDER BY category_type ASC, id ASC")->fetchAll();
     if (function_exists('sort_sizes')) {
         sort_sizes($all_sizes, true);
     }
 
+    // Distinct size IDs present in current matrix
+    $matrix_size_ids = !empty($variants) ? array_map('intval', array_unique(array_column($variants, 'size_id'))) : [];
+
+    // 1. Fetch Sizes for this product's category / type directly in PHP
+    // Completely eliminates MySQL 8 collation conflicts (e.g. utf8mb4_0900_ai_ci vs utf8mb4_bin in LIKE operations)
+    $cat_name = trim($product['category_name'] ?? '');
+    $parent_cat_name = trim($product['parent_category_name'] ?? '');
+    $cat_lower = strtolower($cat_name);
+    $parent_lower = strtolower($parent_cat_name);
+
+    $matching_sizes = [];
+    foreach ($all_sizes as $s) {
+        $type_lower = strtolower(trim($s['category_type'] ?? ''));
+        $is_match = false;
+
+        // Exact match with category or parent category
+        if ($cat_lower !== '' && $type_lower === $cat_lower) {
+            $is_match = true;
+        } elseif ($parent_lower !== '' && $type_lower === $parent_lower) {
+            $is_match = true;
+        }
+        // Substring match (e.g. 'Bra' in 'Comfy Bra' or 'Comfy Bra' contains 'Bra')
+        elseif ($cat_lower !== '' && (strpos($type_lower, $cat_lower) !== false || strpos($cat_lower, $type_lower) !== false)) {
+            $is_match = true;
+        } elseif ($parent_lower !== '' && (strpos($type_lower, $parent_lower) !== false || strpos($parent_lower, $type_lower) !== false)) {
+            $is_match = true;
+        }
+        // Already configured in current product's variant matrix
+        elseif (in_array((int)$s['id'], $matrix_size_ids, true)) {
+            $is_match = true;
+        }
+
+        if ($is_match) {
+            $matching_sizes[] = $s;
+        }
+    }
+
+    if (function_exists('sort_sizes')) {
+        sort_sizes($matching_sizes);
+    }
+
     // Distinct sizes present in current matrix for batch updater
-    $matrix_size_ids = !empty($variants) ? array_unique(array_column($variants, 'size_id')) : [];
     $matrix_sizes = array_filter($all_sizes, function($s) use ($matrix_size_ids) {
-        return in_array($s['id'], $matrix_size_ids);
+        return in_array((int)$s['id'], $matrix_size_ids, true);
     });
     if (function_exists('sort_sizes')) {
         sort_sizes($matrix_sizes);
