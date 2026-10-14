@@ -2,31 +2,44 @@
 // admin/variants.php
 // Product Variant Matrix Management with Stock Logs and Dual-Tier Pricing
 
-$page_title = 'Product Variants Matrix';
-$active_menu = 'products';
-require_once __DIR__ . '/includes/header.php';
-require_once __DIR__ . '/../includes/security.php';
+// Ensure sufficient memory and execution time for large variant sets on shared hosting
+@ini_set('memory_limit', '512M');
+@ini_set('max_execution_time', '300');
+@ini_set('max_input_time', '300');
 
-// Check permissions
-require_admin_permission('products');
-
+// Validate product_id before header to allow clean redirects if missing
 $product_id = (int)($_GET['product_id'] ?? 0);
 if (!$product_id) {
+    require_once __DIR__ . '/../config/database.php';
+    require_once __DIR__ . '/../includes/functions.php';
     set_flash_message('error', 'Please choose a product to manage variants.');
     header('Location: products.php');
     exit;
 }
 
-// Fetch target product details with category info
-$p_stmt = $pdo->prepare("
-    SELECT p.*, c.name as category_name, c.parent_id, parent.name as parent_category_name
-    FROM products p 
-    LEFT JOIN categories c ON p.category_id = c.id
-    LEFT JOIN categories parent ON c.parent_id = parent.id
-    WHERE p.id = ? LIMIT 1
-");
-$p_stmt->execute([$product_id]);
-$product = $p_stmt->fetch();
+$page_title = 'Product Variants Matrix';
+$active_menu = 'products';
+require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/security.php';
+
+// Check permissions
+require_admin_permission('products');
+
+// Fetch target product details with category info safely
+try {
+    $p_stmt = $pdo->prepare("
+        SELECT p.*, c.name as category_name, c.parent_id, parent.name as parent_category_name
+        FROM products p 
+        LEFT JOIN categories c ON p.category_id = c.id
+        LEFT JOIN categories parent ON c.parent_id = parent.id
+        WHERE p.id = ? LIMIT 1
+    ");
+    $p_stmt->execute([$product_id]);
+    $product = $p_stmt->fetch();
+} catch (PDOException $e) {
+    $product = null;
+}
 
 if (!$product) {
     set_flash_message('error', 'Product not found.');
@@ -65,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $cl = $c_stmt->fetch();
 
                 $sz_code = $sz ? $sz['size_code'] : $size_id;
-                $cl_short = $cl ? get_color_short_code($cl['color_name'], $cl['short_code'] ?? null) : $color_id;
+                $cl_short = $cl ? (function_exists('get_color_short_code') ? get_color_short_code($cl['color_name'], $cl['short_code'] ?? null) : strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $cl['color_name'] ?? ''), 0, 4))) : $color_id;
                 $sku = $product['sku'] . '-' . $sz_code . '-' . $cl_short;
             }
 
@@ -252,65 +265,93 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Fetch configured variants
-$variants_list = $pdo->prepare("
-    SELECT v.*, s.size_code, s.size_name, s.category_type as size_cat, c.color_name, c.color_code 
-    FROM product_variants v 
-    JOIN sizes s ON v.size_id = s.id 
-    JOIN colors c ON v.color_id = c.id 
-    WHERE v.product_id = ? 
-    ORDER BY s.id ASC, c.id ASC
-");
-$variants_list->execute([$product_id]);
-$variants = $variants_list->fetchAll();
-
-// 1. Fetch Sizes for this product's category / type
-$cat_name = trim($product['category_name'] ?? '');
-$parent_cat_name = trim($product['parent_category_name'] ?? '');
-
+$variants = [];
 $matching_sizes = [];
-if (!empty($cat_name) || !empty($parent_cat_name)) {
-    $sz_stmt = $pdo->prepare("
-        SELECT DISTINCT s.* 
-        FROM sizes s 
-        WHERE LOWER(s.category_type) = LOWER(?) 
-           OR LOWER(s.category_type) = LOWER(?)
-           OR s.category_type LIKE CONCAT('%', ?, '%')
-           OR ? LIKE CONCAT('%', s.category_type, '%')
-           OR s.id IN (SELECT size_id FROM product_variants WHERE product_id = ?)
-        ORDER BY s.category_type ASC, s.id ASC
+$all_sizes = [];
+$matrix_sizes = [];
+$product_colors = [];
+$all_colors = [];
+$load_error = '';
+
+try {
+    // Fetch configured variants
+    $variants_list = $pdo->prepare("
+        SELECT v.*, s.size_code, s.size_name, s.category_type as size_cat, c.color_name, c.color_code 
+        FROM product_variants v 
+        JOIN sizes s ON v.size_id = s.id 
+        JOIN colors c ON v.color_id = c.id 
+        WHERE v.product_id = ? 
+        ORDER BY s.id ASC, c.id ASC
     ");
-    $sz_stmt->execute([$cat_name, $parent_cat_name, $cat_name, $cat_name, $product_id]);
-    $matching_sizes = $sz_stmt->fetchAll();
-    sort_sizes($matching_sizes);
+    $variants_list->execute([$product_id]);
+    $variants = $variants_list->fetchAll();
+
+    // 1. Fetch Sizes for this product's category / type
+    $cat_name = trim($product['category_name'] ?? '');
+    $parent_cat_name = trim($product['parent_category_name'] ?? '');
+
+    if (!empty($cat_name) || !empty($parent_cat_name)) {
+        // Use INSTR(?, s.category_type) > 0 instead of ? LIKE CONCAT(...) to prevent MySQL 8 collation/syntax conflicts
+        $sz_stmt = $pdo->prepare("
+            SELECT DISTINCT s.* 
+            FROM sizes s 
+            WHERE LOWER(s.category_type) = LOWER(?) 
+               OR LOWER(s.category_type) = LOWER(?)
+               OR s.category_type LIKE CONCAT('%', ?, '%')
+               OR INSTR(?, s.category_type) > 0
+               OR s.id IN (SELECT size_id FROM product_variants WHERE product_id = ?)
+            ORDER BY s.category_type ASC, s.id ASC
+        ");
+        $sz_stmt->execute([$cat_name, $parent_cat_name, $cat_name, $cat_name, $product_id]);
+        $matching_sizes = $sz_stmt->fetchAll();
+        if (function_exists('sort_sizes')) {
+            sort_sizes($matching_sizes);
+        }
+    }
+
+    $all_sizes = $pdo->query("SELECT * FROM sizes ORDER BY category_type ASC, id ASC")->fetchAll();
+    if (function_exists('sort_sizes')) {
+        sort_sizes($all_sizes, true);
+    }
+
+    // Distinct sizes present in current matrix for batch updater
+    $matrix_size_ids = !empty($variants) ? array_unique(array_column($variants, 'size_id')) : [];
+    $matrix_sizes = array_filter($all_sizes, function($s) use ($matrix_size_ids) {
+        return in_array($s['id'], $matrix_size_ids);
+    });
+    if (function_exists('sort_sizes')) {
+        sort_sizes($matrix_sizes);
+    }
+
+    // 2. Fetch Colors available for this product (from images and existing variants)
+    $color_query = $pdo->prepare("
+        SELECT DISTINCT c.* 
+        FROM colors c 
+        WHERE c.id IN (
+            SELECT color_id FROM product_images WHERE product_id = ? AND color_id IS NOT NULL
+            UNION
+            SELECT color_id FROM product_variants WHERE product_id = ? AND color_id IS NOT NULL
+        )
+        ORDER BY c.color_name ASC
+    ");
+    $color_query->execute([$product_id, $product_id]);
+    $product_colors = $color_query->fetchAll();
+
+    $all_colors = $pdo->query("SELECT * FROM colors ORDER BY color_name ASC")->fetchAll();
+
+} catch (PDOException $e) {
+    $load_error = 'Error loading variant matrix data: ' . $e->getMessage();
+} catch (Throwable $t) {
+    $load_error = 'System error in variant matrix: ' . $t->getMessage();
 }
-
-$all_sizes = $pdo->query("SELECT * FROM sizes ORDER BY category_type ASC, id ASC")->fetchAll();
-sort_sizes($all_sizes, true);
-
-// Distinct sizes present in current matrix for batch updater
-$matrix_size_ids = array_unique(array_column($variants, 'size_id'));
-$matrix_sizes = array_filter($all_sizes, function($s) use ($matrix_size_ids) {
-    return in_array($s['id'], $matrix_size_ids);
-});
-sort_sizes($matrix_sizes);
-
-// 2. Fetch Colors available for this product (from images and existing variants)
-$color_query = $pdo->prepare("
-    SELECT DISTINCT c.* 
-    FROM colors c 
-    WHERE c.id IN (
-        SELECT color_id FROM product_images WHERE product_id = ? AND color_id IS NOT NULL
-        UNION
-        SELECT color_id FROM product_variants WHERE product_id = ? AND color_id IS NOT NULL
-    )
-    ORDER BY c.color_name ASC
-");
-$color_query->execute([$product_id, $product_id]);
-$product_colors = $color_query->fetchAll();
-
-$all_colors = $pdo->query("SELECT * FROM colors ORDER BY color_name ASC")->fetchAll();
 ?>
+
+<?php if (!empty($load_error)): ?>
+    <div class="alert alert-danger shadow-sm mb-4" role="alert">
+        <h6 class="fw-bold mb-1"><i class="bi bi-exclamation-triangle-fill me-2"></i>Variant Matrix Notice</h6>
+        <p class="mb-0 small"><?php echo e($load_error); ?></p>
+    </div>
+<?php endif; ?>
 
 <div class="mb-4 d-flex justify-content-between align-items-center">
     <a href="products.php" class="btn btn-outline-secondary btn-sm rounded-pill">
@@ -451,8 +492,10 @@ $all_colors = $pdo->query("SELECT * FROM colors ORDER BY color_name ASC")->fetch
                         <option value="">-- Choose Color --</option>
                         <?php if (!empty($product_colors)): ?>
                             <optgroup label="Colors Available for this Product (<?php echo count($product_colors); ?>)">
-                                <?php foreach ($product_colors as $cl): ?>
-                                    <option value="<?php echo $cl['id']; ?>" data-color-short="<?php echo e(get_color_short_code($cl['color_name'], $cl['short_code'] ?? null)); ?>">
+                                <?php foreach ($product_colors as $cl): 
+                                    $cl_code_short = function_exists('get_color_short_code') ? get_color_short_code($cl['color_name'], $cl['short_code'] ?? null) : strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $cl['color_name'] ?? ''), 0, 4));
+                                ?>
+                                    <option value="<?php echo $cl['id']; ?>" data-color-short="<?php echo e($cl_code_short); ?>">
                                         <?php echo e($cl['color_name']); ?> (<?php echo e($cl['color_code']); ?>)
                                     </option>
                                 <?php endforeach; ?>
@@ -463,16 +506,20 @@ $all_colors = $pdo->query("SELECT * FROM colors ORDER BY color_name ASC")->fetch
                             });
                             if (!empty($other_colors)): ?>
                                 <optgroup label="Other Catalog Colors">
-                                    <?php foreach ($other_colors as $cl): ?>
-                                        <option value="<?php echo $cl['id']; ?>" data-color-short="<?php echo e(get_color_short_code($cl['color_name'], $cl['short_code'] ?? null)); ?>">
+                                    <?php foreach ($other_colors as $cl): 
+                                        $cl_code_short = function_exists('get_color_short_code') ? get_color_short_code($cl['color_name'], $cl['short_code'] ?? null) : strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $cl['color_name'] ?? ''), 0, 4));
+                                    ?>
+                                        <option value="<?php echo $cl['id']; ?>" data-color-short="<?php echo e($cl_code_short); ?>">
                                             <?php echo e($cl['color_name']); ?> (<?php echo e($cl['color_code']); ?>)
                                         </option>
                                     <?php endforeach; ?>
                                 </optgroup>
                             <?php endif; ?>
                         <?php else: ?>
-                            <?php foreach ($all_colors as $cl): ?>
-                                <option value="<?php echo $cl['id']; ?>" data-color-short="<?php echo e(get_color_short_code($cl['color_name'], $cl['short_code'] ?? null)); ?>">
+                            <?php foreach ($all_colors as $cl): 
+                                $cl_code_short = function_exists('get_color_short_code') ? get_color_short_code($cl['color_name'], $cl['short_code'] ?? null) : strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $cl['color_name'] ?? ''), 0, 4));
+                            ?>
+                                <option value="<?php echo $cl['id']; ?>" data-color-short="<?php echo e($cl_code_short); ?>">
                                     <?php echo e($cl['color_name']); ?> (<?php echo e($cl['color_code']); ?>)
                                 </option>
                             <?php endforeach; ?>

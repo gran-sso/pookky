@@ -95,6 +95,8 @@ CREATE TABLE IF NOT EXISTS product_variants (
     size_id INT NOT NULL,
     color_id INT NOT NULL,
     sku VARCHAR(100) NOT NULL UNIQUE,
+    regular_price DECIMAL(10,2) DEFAULT NULL,
+    offer_price DECIMAL(10,2) DEFAULT NULL,
     price DECIMAL(10,2) DEFAULT NULL COMMENT 'Override price if set',
     stock INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
