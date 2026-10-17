@@ -149,7 +149,6 @@
 # ------------------------------------------------------------------------------
 Options -Indexes
 
-# Deny public HTTP access to sensitive environment, config, and source files
 <FilesMatch "^\.|\.(env|ini|log|sql|bak|sh|git|md|yml|yaml)$">
     <IfModule mod_authz_core.c>
         Require all denied
@@ -159,3 +158,15 @@ Options -Indexes
         Deny from all
     </IfModule>
 </FilesMatch>
+
+# ------------------------------------------------------------------------------
+# 6. API Route Rewrites for Razorpay Endpoints
+# ------------------------------------------------------------------------------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^api/create-order/?$ api/create-order.php [L,QSA]
+    RewriteRule ^api/verify-payment/?$ api/verify-payment.php [L,QSA]
+</IfModule>
+

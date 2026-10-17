@@ -2,8 +2,10 @@
 // order-success.php
 // Modern State-of-the-Art Order Confirmation & Tracking Screen
 
-$meta_title = 'Order Confirmed | Pookky';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/security.php';
 
 // Check order number parameter
 $order_number = trim($_GET['order_num'] ?? '');
@@ -45,6 +47,9 @@ try {
 } catch (PDOException $e) {
     die("Error retrieving order confirmation details.");
 }
+
+$meta_title = 'Order #' . e($order['order_number']) . ' Confirmed | ' . APP_NAME;
+require_once __DIR__ . '/includes/header.php';
 
 // Compute estimated delivery dates (4-6 days from order date)
 $order_timestamp = !empty($order['created_at']) ? strtotime($order['created_at']) : time();

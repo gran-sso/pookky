@@ -129,7 +129,7 @@ switch ($theme_font_pairing) {
     <!-- Dynamic Google Fonts -->
     <link href="<?php echo $google_font_url; ?>" rel="stylesheet">
     <!-- Global Style -->
-    <link rel="stylesheet" href="assets/css/style.css?v=2.5">
+    <link rel="stylesheet" href="assets/css/style.css?v=2.8">
     
     <!-- Dynamic Theme Custom Properties & Overrides -->
     <style>
@@ -382,7 +382,7 @@ switch ($theme_font_pairing) {
                             </a>
                             <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm" aria-labelledby="userMenuLink">
                                 <li><a class="dropdown-menu-item dropdown-item small" href="dashboard.php"><i class="bi bi-person me-2"></i> My Profile</a></li>
-                                <li><a class="dropdown-menu-item dropdown-item small" href="addresses.php"><i class="bi bi-geo-alt me-2"></i> Shipping Books</a></li>
+                                <li><a class="dropdown-menu-item dropdown-item small" href="addresses.php"><i class="bi bi-geo-alt me-2"></i> Address Book</a></li>
                                 <li><a class="dropdown-menu-item dropdown-item small" href="orders.php"><i class="bi bi-box me-2"></i> Order History</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-menu-item dropdown-item small text-danger" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i> Logout</a></li>
@@ -408,7 +408,7 @@ switch ($theme_font_pairing) {
                         <div class="d-grid gap-1">
                             <a href="dashboard.php" class="btn btn-light btn-sm text-start"><i class="bi bi-person me-2"></i> My Profile</a>
                             <a href="orders.php" class="btn btn-light btn-sm text-start"><i class="bi bi-box me-2"></i> Order History</a>
-                            <a href="addresses.php" class="btn btn-light btn-sm text-start"><i class="bi bi-geo-alt me-2"></i> Addresses</a>
+                            <a href="addresses.php" class="btn btn-light btn-sm text-start"><i class="bi bi-geo-alt me-2"></i> Address Book</a>
                             <a href="logout.php" class="btn btn-outline-danger btn-sm text-start mt-2"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
                         </div>
                     <?php else: ?>

@@ -80,17 +80,21 @@ $colors = $pdo->query("SELECT * FROM colors ORDER BY color_name ASC")->fetchAll(
             <form action="colors.php" method="POST">
                 <?php echo csrf_field(); ?>
                 
-                <div class="mb-3">
-                    <label for="color_name" class="form-label small">Color Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="color_name" name="color_name" placeholder="e.g. Chocolate Brown" required>
-                    <small class="text-muted d-block mt-1" id="color-short-preview">SKU Abbreviation: <code>--</code></small>
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="color_name" name="color_name" placeholder="Color Name *" required>
+                    <label for="color_name">Color Name <span class="text-danger">*</span></label>
+                    <small class="text-muted d-block mt-1 px-1" id="color-short-preview">SKU Abbreviation: <code>--</code></small>
                 </div>
 
                 <div class="mb-3">
-                    <label for="color_code" class="form-label small">Hex Color Palette <span class="text-danger">*</span></label>
-                    <div class="d-flex align-items-center gap-2">
-                        <input type="color" class="form-control form-control-color" id="color_code" name="color_code" value="#B76E79" title="Choose color" required style="width: 50px; height: 38px;">
-                        <input type="text" class="form-control text-uppercase" id="color_code_text" placeholder="#B76E79" maxlength="7" pattern="^#([A-Fa-f0-9]{6})$" required value="#B76E79">
+                    <div class="d-flex align-items-stretch gap-2">
+                        <div class="form-floating flex-grow-1">
+                            <input type="text" class="form-control text-uppercase" id="color_code_text" placeholder="Hex Color Code *" maxlength="7" pattern="^#([A-Fa-f0-9]{6})$" required value="#B76E79">
+                            <label for="color_code_text">Hex Color Code <span class="text-danger">*</span></label>
+                        </div>
+                        <div class="d-flex flex-column justify-content-center">
+                            <input type="color" class="form-control form-control-color p-1" id="color_code" name="color_code" value="#B76E79" title="Choose color swatch" required style="width: 58px; height: 58px; border-radius: 8px;">
+                        </div>
                     </div>
                 </div>
 

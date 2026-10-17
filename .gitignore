@@ -4,6 +4,11 @@
 .env.*.local
 *.env
 
+# Dependencies
+vendor/
+composer.phar
+
+
 # Operating System Files
 .DS_Store
 .DS_Store?
@@ -26,10 +31,11 @@ temp/
 *.log
 error_log
 
-# User uploaded media (keep folder structure and index.html / .gitkeep)
+# User uploaded media (keep folder structure and index.html / .gitkeep / .htaccess)
 uploads/*
 !uploads/index.html
 !uploads/.gitkeep
+!uploads/.htaccess
 
 # Database dumps / SQL backups (keep initial schema if intended, ignore backups)
 *.sql.gz

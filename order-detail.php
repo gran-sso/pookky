@@ -2,9 +2,11 @@
 // order-detail.php
 // Customer Order Details, Tracking and Returns system
 
-$meta_title = 'Order Details & Tracking | Pookky';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/auth.php';
 
 // Requires customer login
 require_customer_login();
@@ -149,6 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_return'])) {
         }
     }
 }
+
+$meta_title = 'Order #' . e($order['order_number']) . ' Details | ' . APP_NAME;
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="container py-5">
@@ -165,7 +170,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_return'])) {
                 </div>
                 <div class="list-group list-group-flush small">
                     <a href="dashboard.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-person me-2"></i> Profile Dashboard</a>
-                    <a href="addresses.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-geo-alt me-2"></i> Shipping Addresses</a>
+                    <a href="addresses.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-geo-alt me-2"></i> Address Book</a>
                     <a href="orders.php" class="list-group-item list-group-item-action border-0 active bg-brand-blush text-rose fw-bold rounded p-2 mb-1"><i class="bi bi-box me-2"></i> Order History</a>
                     <a href="wishlist.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-heart me-2"></i> My Wishlist</a>
                     <a href="logout.php" class="list-group-item list-group-item-action border-0 text-danger rounded p-2"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
@@ -332,45 +337,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['request_return'])) {
                         <?php echo csrf_field(); ?>
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
-                                <label for="order_item_id" class="form-label small fw-bold">1. Select Item to Return/Exchange</label>
-                                <select class="form-select form-select-sm" name="order_item_id" id="order_item_id" required>
-                                    <option value="">-- Choose Item --</option>
-                                    <?php foreach ($order_items as $item): ?>
-                                        <!-- Disable if request already submitted -->
-                                        <?php if (!isset($returned_items[$item['id']])): ?>
-                                            <option value="<?php echo $item['id']; ?>">
-                                                <?php echo e($item['product_name']); ?> (Size: <?php echo e($item['size_name']); ?>, Color: <?php echo e($item['color_name']); ?>)
-                                            </option>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                </select>
+                                <div class="form-floating">
+                                    <select class="form-select" name="order_item_id" id="order_item_id" required>
+                                        <option value="">-- Choose Item --</option>
+                                        <?php foreach ($order_items as $item): ?>
+                                            <!-- Disable if request already submitted -->
+                                            <?php if (!isset($returned_items[$item['id']])): ?>
+                                                <option value="<?php echo $item['id']; ?>">
+                                                    <?php echo e($item['product_name']); ?> (Size: <?php echo e($item['size_name']); ?>, Color: <?php echo e($item['color_name']); ?>)
+                                                </option>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <label for="order_item_id">Item to Return / Exchange</label>
+                                </div>
                             </div>
                             
                             <div class="col-12 col-md-3">
-                                <label for="request_type" class="form-label small fw-bold">2. Request Type</label>
-                                <select class="form-select form-select-sm" name="request_type" id="request_type" required>
-                                    <option value="return">Return & Refund</option>
-                                    <option value="exchange">Size Exchange</option>
-                                </select>
+                                <div class="form-floating">
+                                    <select class="form-select" name="request_type" id="request_type" required>
+                                        <option value="return">Return & Refund</option>
+                                        <option value="exchange">Size Exchange</option>
+                                    </select>
+                                    <label for="request_type">Request Type</label>
+                                </div>
                             </div>
 
                             <div class="col-12 col-md-3">
-                                <label for="reason" class="form-label small fw-bold">3. Allowed Case Reason</label>
-                                <select class="form-select form-select-sm" name="reason" id="reason" required>
-                                    <option value="damaged">Damaged Product received</option>
-                                    <option value="wrong_product">Wrong Product received</option>
-                                    <option value="wrong_size">Wrong Size received</option>
-                                    <option value="missing_item">Missing Item in shipment</option>
-                                </select>
+                                <div class="form-floating">
+                                    <select class="form-select" name="reason" id="reason" required>
+                                        <option value="damaged">Damaged Product received</option>
+                                        <option value="wrong_product">Wrong Product received</option>
+                                        <option value="wrong_size">Wrong Size received</option>
+                                        <option value="missing_item">Missing Item in shipment</option>
+                                    </select>
+                                    <label for="reason">Case Reason</label>
+                                </div>
                             </div>
 
                             <div class="col-12">
-                                <label for="description" class="form-label small fw-bold">4. Describe issue details</label>
-                                <textarea class="form-control form-control-sm" name="description" id="description" rows="2" placeholder="Describe the size mismatch or damage description..." required></textarea>
+                                <div class="form-floating">
+                                    <textarea class="form-control" name="description" id="description" placeholder="Describe the size mismatch or damage description..." style="height: 100px;" required></textarea>
+                                    <label for="description">Describe Issue Details</label>
+                                </div>
                             </div>
 
                             <div class="col-12 text-end">
-                                <button type="submit" name="request_return" class="btn btn-sm btn-brand">Submit Return Request</button>
+                                <button type="submit" name="request_return" class="btn btn-brand px-4 py-2">Submit Return Request</button>
                             </div>
                         </div>
                     </form>

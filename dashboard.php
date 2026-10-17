@@ -2,9 +2,11 @@
 // dashboard.php
 // Customer Account Dashboard
 
-$meta_title = 'My Account Dashboard | Pookky';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/auth.php';
 
 // Protect page
 require_customer_login();
@@ -54,6 +56,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     }
 }
 
+$meta_title = 'My Account Dashboard | ' . APP_NAME;
+require_once __DIR__ . '/includes/header.php';
+
 // Fetch user profile and orders
 $customer = get_logged_in_customer();
 
@@ -80,7 +85,7 @@ try {
                 </div>
                 <div class="list-group list-group-flush small">
                     <a href="dashboard.php" class="list-group-item list-group-item-action border-0 active bg-brand-blush text-rose fw-bold rounded p-2 mb-1"><i class="bi bi-person me-2"></i> Profile Dashboard</a>
-                    <a href="addresses.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-geo-alt me-2"></i> Shipping Addresses</a>
+                    <a href="addresses.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-geo-alt me-2"></i> Address Book</a>
                     <a href="orders.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-box me-2"></i> Order History</a>
                     <a href="wishlist.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-heart me-2"></i> My Wishlist</a>
                     <a href="logout.php" class="list-group-item list-group-item-action border-0 text-danger rounded p-2"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
@@ -104,24 +109,24 @@ try {
                         <h5 class="fw-bold mb-4">Edit Profile details</h5>
                         <form action="dashboard.php" method="POST">
                             <?php echo csrf_field(); ?>
-                            <div class="mb-3">
-                                <label for="name" class="form-label small text-muted">Full Name</label>
-                                <input type="text" class="form-control form-control-sm" id="name" name="name" value="<?php echo e($customer['name']); ?>" required>
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="name" name="name" value="<?php echo e($customer['name']); ?>" required placeholder="Full Name" autocomplete="name">
+                                <label for="name">Full Name</label>
                             </div>
-                            <div class="mb-3">
-                                <label for="email" class="form-label small text-muted">Email Address (Cannot change)</label>
-                                <input type="email" class="form-control form-control-sm" id="email" value="<?php echo e($customer['email']); ?>" readonly disabled>
+                            <div class="form-floating mb-3">
+                                <input type="email" class="form-control" id="email" value="<?php echo e($customer['email']); ?>" readonly disabled placeholder="Email Address">
+                                <label for="email">Email Address (Cannot change)</label>
                             </div>
-                            <div class="mb-3">
-                                <label for="phone" class="form-label small text-muted">Phone Number</label>
-                                <input type="text" class="form-control form-control-sm" id="phone" name="phone" value="<?php echo e($customer['phone']); ?>">
+                            <div class="form-floating mb-3">
+                                <input type="tel" class="form-control" id="phone" name="phone" value="<?php echo e($customer['phone']); ?>" placeholder="Phone Number" autocomplete="tel">
+                                <label for="phone">Phone Number</label>
                             </div>
-                            <div class="mb-4">
-                                <label for="password" class="form-label small text-muted">Change Password (leave empty to keep current)</label>
-                                <input type="password" class="form-control form-control-sm" id="password" name="password" placeholder="••••••••">
+                            <div class="form-floating mb-4">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Change Password" autocomplete="new-password">
+                                <label for="password">Change Password (leave empty to keep current)</label>
                             </div>
                             
-                            <button type="submit" name="update_profile" class="btn btn-sm btn-brand w-100">Save Profile Settings</button>
+                            <button type="submit" name="update_profile" class="btn btn-brand w-100">Save Profile Settings</button>
                         </form>
                     </div>
                 </div>

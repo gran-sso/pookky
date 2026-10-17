@@ -48,7 +48,7 @@ $page_title = $page_title ?? 'Admin Dashboard';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,400;1,6..96,500&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&subset=latin,latin-ext,devanagari&display=swap" rel="stylesheet">
     <!-- Core custom styling -->
-    <link rel="stylesheet" href="../assets/css/style.css?v=2.3">
+    <link rel="stylesheet" href="../assets/css/style.css?v=2.8">
     <style>
         body {
             background-color: #f7f6f2;

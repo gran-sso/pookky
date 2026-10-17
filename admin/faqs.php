@@ -99,7 +99,7 @@ if ($action === 'edit' && isset($_GET['id'])) {
 
 <div class="row g-4 justify-content-center" style="max-width: 1000px; margin: 0 auto;">
     <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-2">
             <div>
                 <h4 class="fw-bold mb-1"><i class="bi bi-question-circle me-2 text-brand"></i> FAQs Management</h4>
                 <p class="text-muted small mb-0">Add, reorder, and manage customer help questions displayed on the storefront FAQ page.</p>
@@ -134,34 +134,37 @@ if ($action === 'edit' && isset($_GET['id'])) {
                         <input type="hidden" name="faq_id" value="<?php echo $faq['id']; ?>">
                     <?php endif; ?>
 
-                    <div class="mb-3">
-                        <label for="question" class="form-label fw-bold small">FAQ Question <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="question" name="question" value="<?php echo e($faq['question'] ?? ''); ?>" required placeholder="e.g. How do I track my order?">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="question" name="question" value="<?php echo e($faq['question'] ?? ''); ?>" required placeholder="FAQ Question *">
+                        <label for="question">FAQ Question <span class="text-danger">*</span></label>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="answer" class="form-label fw-bold small">FAQ Answer / Response (HTML allowed) <span class="text-danger">*</span></label>
-                        <textarea class="form-control" id="answer" name="answer" rows="5" required placeholder="Write the helpful response for customers..."><?php echo e($faq['answer'] ?? ''); ?></textarea>
-                        <div class="form-text small text-muted">
-                            <strong>Dynamic Tokens Available:</strong> <code>{SHIPPING_FLAT_RATE}</code>, <code>{FREE_SHIPPING_THRESHOLD}</code>, <code>{RETURN_WINDOW_DAYS}</code>, <code>{EST_DELIVERY_DAYS}</code>, <code>{SITE_NAME}</code>
-                        </div>
+                    <div class="form-floating mb-2">
+                        <textarea class="form-control" id="answer" name="answer" required placeholder="FAQ Answer / Response (HTML allowed) *" style="height: 140px;"><?php echo e($faq['answer'] ?? ''); ?></textarea>
+                        <label for="answer">FAQ Answer / Response (HTML allowed) <span class="text-danger">*</span></label>
+                    </div>
+                    <div class="form-text small text-muted mb-3">
+                        <strong>Dynamic Tokens Available:</strong> <code>{SHIPPING_FLAT_RATE}</code>, <code>{FREE_SHIPPING_THRESHOLD}</code>, <code>{RETURN_WINDOW_DAYS}</code>, <code>{EST_DELIVERY_DAYS}</code>, <code>{SITE_NAME}</code>
                     </div>
 
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-6">
-                            <label for="sort_order" class="form-label fw-bold small">Display Sort Order (Lower numbers show first)</label>
-                            <input type="number" class="form-control" id="sort_order" name="sort_order" value="<?php echo e($faq['sort_order'] ?? '0'); ?>">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="sort_order" name="sort_order" value="<?php echo e($faq['sort_order'] ?? '0'); ?>" placeholder="Display Sort Order">
+                                <label for="sort_order">Display Sort Order</label>
+                            </div>
+                            <div class="form-text small text-muted">Lower numbers appear first.</div>
                         </div>
                         <div class="col-12 col-md-6 d-flex align-items-center">
-                            <div class="form-check form-switch mt-3">
+                            <div class="form-check form-switch pt-2">
                                 <input class="form-check-input" type="checkbox" id="status" name="status" <?php echo (!isset($faq['status']) || $faq['status'] == 1) ? 'checked' : ''; ?>>
-                                <label class="form-check-label small fw-bold" for="status">Published & Active on FAQ Page</label>
+                                <label class="form-check-label small fw-bold ms-1" for="status">Published & Active on FAQ Page</label>
                             </div>
                         </div>
                     </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" name="<?php echo $action === 'add' ? 'add_faq' : 'edit_faq'; ?>" class="btn btn-brand">Save FAQ</button>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" name="<?php echo $action === 'add' ? 'add_faq' : 'edit_faq'; ?>" class="btn btn-brand rounded-pill px-4">Save FAQ</button>
                         <a href="faqs.php" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
                     </div>
                 </form>

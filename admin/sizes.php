@@ -82,8 +82,7 @@ sort_sizes($sizes, true);
             <form action="sizes.php" method="POST">
                 <?php echo csrf_field(); ?>
                 
-                <div class="mb-3">
-                    <label for="category_type" class="form-label small">Product Type Category <span class="text-danger">*</span></label>
+                <div class="form-floating mb-3">
                     <select class="form-select" id="category_type" name="category_type" required>
                         <option value="">-- Select Type --</option>
                         <option value="Bras">Bras</option>
@@ -92,16 +91,17 @@ sort_sizes($sizes, true);
                         <option value="Shapewear">Shapewear</option>
                         <option value="Activewear">Activewear</option>
                     </select>
+                    <label for="category_type">Product Type Category <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="size_name" class="form-label small">Size Label Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="size_name" name="size_name" placeholder="e.g. 34B or Medium" required>
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="size_name" name="size_name" placeholder="Size Label Name *" required>
+                    <label for="size_name">Size Label Name <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="size_code" class="form-label small">Short Size Code <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="size_code" name="size_code" placeholder="e.g. 34B or M" required>
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="size_code" name="size_code" placeholder="Short Size Code *" required>
+                    <label for="size_code">Short Size Code <span class="text-danger">*</span></label>
                 </div>
 
                 <div class="d-grid mt-4">

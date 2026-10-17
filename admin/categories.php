@@ -205,33 +205,41 @@ if ($action === 'add' || $action === 'edit'):
 
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-5">
-                    <label for="name" class="form-label fw-bold small">Category Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="name" name="name" value="<?php echo e($category['name'] ?? ''); ?>" required placeholder="e.g. Cotton Bras">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="name" name="name" value="<?php echo e($category['name'] ?? ''); ?>" required placeholder="Category Name *">
+                        <label for="name">Category Name <span class="text-danger">*</span></label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-4">
-                    <label for="slug" class="form-label fw-bold small">URL Slug (leave empty to auto-generate)</label>
-                    <input type="text" class="form-control" id="slug" name="slug" value="<?php echo e($category['slug'] ?? ''); ?>" placeholder="e.g. cotton-bras">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="slug" name="slug" value="<?php echo e($category['slug'] ?? ''); ?>" placeholder="URL Slug (auto-generated if empty)">
+                        <label for="slug">URL Slug (leave empty to auto-generate)</label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label for="sort_order" class="form-label fw-bold small">Display Priority / Sort Order</label>
-                    <input type="number" class="form-control" id="sort_order" name="sort_order" value="<?php echo e($category['sort_order'] ?? 0); ?>" placeholder="0">
+                    <div class="form-floating">
+                        <input type="number" class="form-control" id="sort_order" name="sort_order" value="<?php echo e($category['sort_order'] ?? 0); ?>" placeholder="Display Priority">
+                        <label for="sort_order">Sort Order Priority</label>
+                    </div>
                     <div class="form-text small text-muted">Lower numbers appear first.</div>
                 </div>
                 
                 <div class="col-12 col-md-6">
-                    <label for="parent_id" class="form-label fw-bold small">Parent Category</label>
-                    <select class="form-select" id="parent_id" name="parent_id">
-                        <option value="">None (Top Level)</option>
-                        <?php foreach ($parents as $p): ?>
-                            <option value="<?php echo $p['id']; ?>" <?php echo (isset($category['parent_id']) && $category['parent_id'] == $p['id']) ? 'selected' : ''; ?>>
-                                <?php echo e($p['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="form-floating">
+                        <select class="form-select" id="parent_id" name="parent_id">
+                            <option value="">None (Top Level)</option>
+                            <?php foreach ($parents as $p): ?>
+                                <option value="<?php echo $p['id']; ?>" <?php echo (isset($category['parent_id']) && $category['parent_id'] == $p['id']) ? 'selected' : ''; ?>>
+                                    <?php echo e($p['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <label for="parent_id">Parent Category</label>
+                    </div>
                 </div>
 
                 <div class="col-12 col-md-6">
-                    <label for="image" class="form-label fw-bold small">
+                    <label for="image" class="form-label fw-bold small text-muted">
                         Category Card Image (Optional)
                         <span class="badge bg-light text-primary border ms-1"><i class="bi bi-aspect-ratio me-1"></i>600 × 600 px (1:1)</span>
                     </label>
@@ -248,8 +256,10 @@ if ($action === 'add' || $action === 'edit'):
                 </div>
 
                 <div class="col-12">
-                    <label for="description" class="form-label fw-bold small">Description</label>
-                    <textarea class="form-control" id="description" name="description" rows="3" placeholder="Brief summary for catalog cards and SEO"><?php echo e($category['description'] ?? ''); ?></textarea>
+                    <div class="form-floating">
+                        <textarea class="form-control" id="description" name="description" placeholder="Description for catalog cards & SEO" style="height: 100px;"><?php echo e($category['description'] ?? ''); ?></textarea>
+                        <label for="description">Description (for catalog cards & SEO)</label>
+                    </div>
                 </div>
 
                 <div class="col-12">
@@ -260,7 +270,7 @@ if ($action === 'add' || $action === 'edit'):
                 </div>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 <button type="submit" name="<?php echo $action === 'add' ? 'add_category' : 'edit_category'; ?>" class="btn btn-brand px-4 rounded-pill">
                     <i class="bi bi-check2-circle me-1"></i> Save Category
                 </button>

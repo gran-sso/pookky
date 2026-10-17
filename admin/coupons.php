@@ -139,44 +139,56 @@ if ($action === 'add' || $action === 'edit'):
 
             <div class="row g-3 mb-4">
                 <div class="col-12 col-md-6">
-                    <label for="code" class="form-label fw-bold small">Promo Code (All Caps, e.g. FESTIVE20)</label>
-                    <input type="text" class="form-control text-uppercase" id="code" name="code" value="<?php echo e($coupon['code'] ?? ''); ?>" required placeholder="e.g. POOKKY100">
+                    <div class="form-floating">
+                        <input type="text" class="form-control text-uppercase" id="code" name="code" value="<?php echo e($coupon['code'] ?? ''); ?>" required placeholder="Promo Code (e.g. FESTIVE20)">
+                        <label for="code">Promo Code (e.g. FESTIVE20) <span class="text-danger">*</span></label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label for="discount_type" class="form-label fw-bold small">Discount Model</label>
-                    <select class="form-select" id="discount_type" name="discount_type" required>
-                        <option value="fixed" <?php echo (isset($coupon['discount_type']) && $coupon['discount_type'] === 'fixed') ? 'selected' : ''; ?>>Fixed Amount (INR)</option>
-                        <option value="percentage" <?php echo (isset($coupon['discount_type']) && $coupon['discount_type'] === 'percentage') ? 'selected' : ''; ?>>Percentage (%)</option>
-                    </select>
+                    <div class="form-floating">
+                        <select class="form-select" id="discount_type" name="discount_type" required>
+                            <option value="fixed" <?php echo (isset($coupon['discount_type']) && $coupon['discount_type'] === 'fixed') ? 'selected' : ''; ?>>Fixed Amount (INR)</option>
+                            <option value="percentage" <?php echo (isset($coupon['discount_type']) && $coupon['discount_type'] === 'percentage') ? 'selected' : ''; ?>>Percentage (%)</option>
+                        </select>
+                        <label for="discount_type">Discount Model <span class="text-danger">*</span></label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label for="discount_value" class="form-label fw-bold small">Discount Value</label>
-                    <input type="number" step="0.01" class="form-control" id="discount_value" name="discount_value" value="<?php echo e($coupon['discount_value'] ?? ''); ?>" required placeholder="e.g. 100 or 15">
+                    <div class="form-floating">
+                        <input type="number" step="0.01" class="form-control" id="discount_value" name="discount_value" value="<?php echo e($coupon['discount_value'] ?? ''); ?>" required placeholder="Discount Value (e.g. 100 or 15)">
+                        <label for="discount_value">Discount Value <span class="text-danger">*</span></label>
+                    </div>
                 </div>
 
                 <div class="col-12 col-md-4">
-                    <label for="min_order_value" class="form-label fw-bold small">Min Order Cart Subtotal</label>
-                    <input type="number" step="0.01" class="form-control" id="min_order_value" name="min_order_value" value="<?php echo e($coupon['min_order_value'] ?? '0.00'); ?>">
+                    <div class="form-floating">
+                        <input type="number" step="0.01" class="form-control" id="min_order_value" name="min_order_value" value="<?php echo e($coupon['min_order_value'] ?? '0.00'); ?>" placeholder="Min Order Cart Subtotal">
+                        <label for="min_order_value">Min Order Cart Subtotal</label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-4">
-                    <label for="expiry_date" class="form-label fw-bold small">Expiry Date</label>
-                    <input type="date" class="form-control" id="expiry_date" name="expiry_date" value="<?php echo e($coupon['expiry_date'] ?? ''); ?>">
+                    <div class="form-floating">
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date" value="<?php echo e($coupon['expiry_date'] ?? ''); ?>" placeholder="Expiry Date">
+                        <label for="expiry_date">Expiry Date</label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-4">
-                    <label for="max_uses" class="form-label fw-bold small">Max Usage Cap (0 for unlimited)</label>
-                    <input type="number" class="form-control" id="max_uses" name="max_uses" value="<?php echo e($coupon['max_uses'] ?? '0'); ?>">
+                    <div class="form-floating">
+                        <input type="number" class="form-control" id="max_uses" name="max_uses" value="<?php echo e($coupon['max_uses'] ?? '0'); ?>" placeholder="Max Usage Cap">
+                        <label for="max_uses">Max Usage Cap (0 for unlimited)</label>
+                    </div>
                 </div>
 
                 <div class="col-12">
                     <div class="form-check form-switch mt-2">
                         <input class="form-check-input" type="checkbox" id="status" name="status" <?php echo (!isset($coupon['status']) || $coupon['status'] == 1) ? 'checked' : ''; ?>>
-                        <label class="form-check-label small" for="status">Active & Apply-ready</label>
+                        <label class="form-check-label small fw-semibold" for="status">Active & Apply-ready</label>
                     </div>
                 </div>
             </div>
 
-            <div class="d-flex gap-2">
-                <button type="submit" name="<?php echo $action === 'add' ? 'add_coupon' : 'edit_coupon'; ?>" class="btn btn-brand">Save Promo Coupon</button>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" name="<?php echo $action === 'add' ? 'add_coupon' : 'edit_coupon'; ?>" class="btn btn-brand rounded-pill px-4">Save Promo Coupon</button>
                 <a href="coupons.php" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
             </div>
         </form>
@@ -193,9 +205,9 @@ if ($action === 'add' || $action === 'edit'):
 ?>
 
     <div class="card border-0 shadow-sm p-4 bg-white" style="border-radius: 12px;">
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
             <h5 class="fw-bold mb-0">Coupons & Offer Codes</h5>
-            <a href="coupons.php?action=add" class="btn btn-brand">
+            <a href="coupons.php?action=add" class="btn btn-brand rounded-pill px-3">
                 <i class="bi bi-plus-circle me-1"></i> Add Coupon
             </a>
         </div>

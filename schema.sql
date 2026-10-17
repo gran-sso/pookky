@@ -245,6 +245,7 @@ CREATE TABLE IF NOT EXISTS orders (
     grand_total DECIMAL(10,2) NOT NULL,
     payment_method VARCHAR(50) DEFAULT 'COD',
     payment_status ENUM('pending', 'paid', 'refunded', 'failed') DEFAULT 'pending',
+    transaction_id VARCHAR(100) DEFAULT NULL,
     order_status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned') DEFAULT 'pending',
     courier_name VARCHAR(100) DEFAULT NULL,
     tracking_number VARCHAR(100) DEFAULT NULL,
@@ -329,12 +330,26 @@ CREATE TABLE IF NOT EXISTS reviews (
 CREATE TABLE IF NOT EXISTS banners (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(150) NOT NULL,
+    tagline VARCHAR(100) DEFAULT 'Featured Collection',
+    subtitle VARCHAR(255) DEFAULT 'Elegant designs, soft fabrics, and customizable sizing matrices.',
     image_path VARCHAR(255) NOT NULL,
     mobile_image VARCHAR(255) DEFAULT NULL,
     link_url VARCHAR(255) DEFAULT NULL,
+    btn_text VARCHAR(100) DEFAULT 'Shop Collection',
     sort_order INT DEFAULT 0,
     status TINYINT DEFAULT 1 COMMENT '1=Active, 0=Inactive',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 22. Frequently Asked Questions (FAQs)
+CREATE TABLE IF NOT EXISTS faqs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    question VARCHAR(255) NOT NULL,
+    answer TEXT NOT NULL,
+    sort_order INT DEFAULT 0,
+    status TINYINT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 22. Site Content Pages
@@ -399,6 +414,18 @@ CREATE TABLE IF NOT EXISTS email_otps (
     INDEX idx_email_purpose (email, purpose, is_used)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 28. Pending Checkouts (Temporary holding table before payment verification)
+CREATE TABLE IF NOT EXISTS pending_checkouts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    razorpay_order_id VARCHAR(100) NOT NULL UNIQUE,
+    order_number VARCHAR(50) NOT NULL,
+    customer_id INT NULL,
+    checkout_data LONGTEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX (order_number),
+    INDEX (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- ==========================================
 -- SEED DATA
@@ -424,7 +451,13 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('shipping_flat_rate', '99.00'),
 ('free_shipping_threshold', '999.00'),
 ('default_gst_rate', '18.00'),
-('address_company', 'Pookky Innerwear Mfg Ltd, Phase 2, Industrial Area, Bangalore, Karnataka - 560001'),
+('address_company', 'St. Joseph Garments, Phase 2, Industrial Area, Bangalore, Karnataka - 560001'),
+('company_legal_name', 'St. Joseph Garments'),
+('company_gstin', ''),
+('company_reg_number', ''),
+('company_pan', ''),
+('invoice_authorized_signatory', 'St. Joseph Garments'),
+('invoice_terms_notes', '1. Standard exchange policies apply within 7 days of delivery.\n2. Lingerie items must remain unworn with tags attached.\n3. All disputes subject to local jurisdiction.'),
 ('google_client_id', ''),
 ('google_client_secret', ''),
 ('google_auth_enabled', '0'),
@@ -432,7 +465,30 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('site_notice_badge', 'PRE-LAUNCH TESTING'),
 ('site_notice_text', 'Welcome to Pookky! We are currently undergoing final testing & verification before our official launch. Orders placed during this period are for demonstration/testing and will not be charged or processed.'),
 ('site_notice_type', 'amber'),
-('site_notice_dismissible', '1');
+('site_notice_dismissible', '1'),
+('cod_enabled', '1'),
+('cod_shipping_charge', '0'),
+('courier_partner_name', 'BlueDart, Delhivery, DTDC, Xpressbees'),
+('discreet_packaging_enabled', '1'),
+('est_delivery_min_days', '3'),
+('est_delivery_max_days', '5'),
+('footer_about_text', 'Pookky is a leading ladies\' innerwear brand dedicated to delivering luxury, comfort, and perfect fit. We design and manufacture premium lingerie using the finest fabrics for the modern woman.'),
+('home_tagline_categories', 'Selected Collection Blocks'),
+('home_tagline_featured', 'Exclusive Picks of the Season'),
+('home_tagline_new_arrivals', 'Fresh off the Looms'),
+('home_tagline_best_sellers', 'Customer Favorites'),
+('nav_menu_categories', ''),
+('razorpay_enabled', '0'),
+('razorpay_key_id', ''),
+('razorpay_key_secret', ''),
+('razorpay_mode', 'test'),
+('razorpay_webhook_secret', ''),
+('return_window_days', '7'),
+('social_facebook', 'https://facebook.com'),
+('social_instagram', 'https://instagram.com'),
+('social_pinterest', 'https://pinterest.com'),
+('social_youtube', 'https://youtube.com'),
+('support_hours', 'Monday to Saturday, 9:00 AM to 6:00 PM');
 
 -- Default Content Pages
 INSERT INTO pages (slug, title, content, seo_title, seo_description) VALUES
@@ -567,3 +623,12 @@ INSERT INTO banners (title, image_path, link_url, sort_order, status) VALUES
 INSERT INTO coupons (code, discount_type, discount_value, min_order_value, expiry_date, max_uses, status) VALUES
 ('POOKKY100', 'fixed', 100.00, 499.00, '2027-12-31', 500, 1),
 ('FIRST15', 'percentage', 15.00, 999.00, '2027-12-31', 1000, 1);
+
+-- Default Frequently Asked Questions (FAQs)
+INSERT INTO faqs (id, question, answer, sort_order, status) VALUES
+(1, 'How do I find my perfect bra size?', 'Refer to our detailed <a href="size-guide.php" class="text-rose fw-bold">Size Guide page</a>. You will need a soft tape measure to record your underbust (band size) and overbust (cup size). Compare measurements with our tables to select the perfect code.', 1, 1),
+(2, 'What are the shipping charges and delivery timelines?', 'We charge a flat delivery rate of {SHIPPING_FLAT_RATE}. For orders above {FREE_SHIPPING_THRESHOLD}, shipping is completely FREE. Shipments are processed via major courier partners and usually arrive within {EST_DELIVERY_DAYS} business days.', 2, 1),
+(3, 'What is your return and exchange policy?', 'Due to hygiene reasons, we only allow returns or exchanges for allowed cases: damaged product received, wrong product, wrong size received, or missing item in shipment. Requests must be submitted within {RETURN_WINDOW_DAYS} days of delivery.', 3, 1),
+(4, 'Can I cancel my order?', 'Yes, you can cancel your order directly from your Customer Dashboard only while the order status is still marked as "Pending". Once processing or shipping starts, cancellations are disabled.', 4, 1),
+(5, 'What payment methods do you support?', 'We currently support Cash on Delivery (COD) for all orders, as well as online credit card, debit card, UPI, and net banking payments via Razorpay.', 5, 1);
+

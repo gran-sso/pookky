@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initGuestAddressAutofill();
     initAlertDismissHandlers();
     initOrderSuccessHandlers();
+    initMobileStickyBar();
 });
 
 // Utility to display notifications using Bootstrap Toasts or fallback Alerts
@@ -252,6 +253,7 @@ function initVariantSelection() {
     const colorSwatches = document.querySelectorAll('.swatch-color:not(.combo-swatch-color)');
     const sizeSwatches = document.querySelectorAll('.swatch-size:not(.combo-swatch-size)');
     const addToCartBtn = document.getElementById('add-to-cart-btn');
+    const buyNowBtn = document.getElementById('buy-now-btn');
     const priceDisplay = document.getElementById('product-price-span') || document.getElementById('variant-price-display');
     const stockDisplay = document.getElementById('variant-stock-display');
     const variantInput = document.getElementById('selected-variant-id');
@@ -273,20 +275,27 @@ function initVariantSelection() {
                     qtyInput.setAttribute('max', Math.min(10, stock));
                 }
                 addToCartBtn.disabled = false;
-                addToCartBtn.textContent = 'Add to Cart';
+                addToCartBtn.innerHTML = '<i class="bi bi-bag-plus me-1"></i> Add to Bag';
+                if (buyNowBtn) {
+                    buyNowBtn.disabled = false;
+                }
             } else {
                 if (stockDisplay) {
                     stockDisplay.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle"></i> Out of Stock</span>`;
                 }
                 addToCartBtn.disabled = true;
-                addToCartBtn.textContent = 'Out of Stock';
+                addToCartBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Out of Stock';
+                if (buyNowBtn) {
+                    buyNowBtn.disabled = true;
+                }
             }
         }
     }
 
     if (!colorSwatches.length && !sizeSwatches.length) {
-        // Still bind add to cart button if single direct variant is present
+        // Still bind add to cart and buy now handlers if single direct variant is present
         bindAddToCartHandler();
+        bindBuyNowHandler();
         return;
     }
 
@@ -341,6 +350,11 @@ function initVariantSelection() {
                 }
             }
             
+            const mobileBarPrice = document.getElementById('mobile-bar-price');
+            if (mobileBarPrice) {
+                mobileBarPrice.textContent = '₹ ' + effectiveSelling.toFixed(2);
+            }
+            
             // Stock checks
             const stock = parseInt(matched.stock) || 0;
             if (stock > 0) {
@@ -351,13 +365,19 @@ function initVariantSelection() {
                     qtyInput.setAttribute('max', Math.min(10, stock));
                 }
                 addToCartBtn.disabled = false;
-                addToCartBtn.textContent = 'Add to Cart';
+                addToCartBtn.innerHTML = '<i class="bi bi-bag-plus me-1"></i> Add to Bag';
+                if (buyNowBtn) {
+                    buyNowBtn.disabled = false;
+                }
             } else {
                 if (stockDisplay) {
                     stockDisplay.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle"></i> Out of Stock</span>`;
                 }
                 addToCartBtn.disabled = true;
-                addToCartBtn.textContent = 'Out of Stock';
+                addToCartBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i> Out of Stock';
+                if (buyNowBtn) {
+                    buyNowBtn.disabled = true;
+                }
             }
         } else {
             if (variantInput) variantInput.value = '';
@@ -365,7 +385,10 @@ function initVariantSelection() {
                 stockDisplay.innerHTML = `<span class="text-danger"><i class="bi bi-x-circle"></i> Size/Color combination unavailable</span>`;
             }
             addToCartBtn.disabled = true;
-            addToCartBtn.textContent = 'Unavailable';
+            addToCartBtn.innerHTML = '<i class="bi bi-slash-circle me-1"></i> Unavailable';
+            if (buyNowBtn) {
+                buyNowBtn.disabled = true;
+            }
         }
     }
 
@@ -448,6 +471,7 @@ function initVariantSelection() {
     }
 
     bindAddToCartHandler();
+    bindBuyNowHandler();
 
     function bindAddToCartHandler() {
         // Handle add to cart submission via AJAX (prevent duplicate bindings)
@@ -508,6 +532,59 @@ function initVariantSelection() {
             });
         });
     }
+
+    function bindBuyNowHandler() {
+        if (!buyNowBtn || buyNowBtn._boundBuyNow) return;
+        buyNowBtn._boundBuyNow = true;
+
+        buyNowBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const vId = variantInput ? variantInput.value : '';
+            const qty = qtyInput ? qtyInput.value : 1;
+
+            if (!vId) {
+                showToast('Please select Color and Size first.', 'error');
+                const form = document.getElementById('purchase-form');
+                if (form) {
+                    form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return;
+            }
+
+            const originalBtnHtml = buyNowBtn.innerHTML;
+            buyNowBtn.disabled = true;
+            buyNowBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status"></span> Fast Tracking...';
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const formData = new FormData();
+            formData.append('action', 'add_to_cart');
+            formData.append('variant_id', vId);
+            formData.append('quantity', qty);
+            formData.append('csrf_token', csrfToken);
+
+            fetch('process-cart.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    buyNowBtn.innerHTML = '<i class="bi bi-check2 me-1 text-success"></i> Redirecting...';
+                    window.location.href = 'checkout.php';
+                } else {
+                    buyNowBtn.disabled = false;
+                    buyNowBtn.innerHTML = originalBtnHtml;
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                buyNowBtn.disabled = false;
+                buyNowBtn.innerHTML = originalBtnHtml;
+                showToast('Failed to process. Please try again.', 'error');
+            });
+        });
+    }
 }
 
 // Newsletter subscriber submissions
@@ -553,6 +630,7 @@ function initComboBuilder() {
     if (typeof comboComponentsData === 'undefined' || !comboComponentsData.length) return;
 
     const addComboBtn = document.getElementById('add-combo-to-cart-btn');
+    const buyComboNowBtn = document.getElementById('buy-combo-now-btn');
     const comboQtyInput = document.getElementById('combo-qty');
     const comboProductIdInput = document.getElementById('combo-product-id');
 
@@ -589,12 +667,18 @@ function initComboBuilder() {
         if (allSelected) {
             addComboBtn.disabled = false;
             addComboBtn.innerHTML = '<i class="bi bi-bag-check-fill me-1"></i> Add Set to Bag';
+            if (buyComboNowBtn) {
+                buyComboNowBtn.disabled = false;
+            }
             if (comboQtyInput) {
                 comboQtyInput.setAttribute('max', Math.min(10, minStock));
             }
         } else {
             addComboBtn.disabled = true;
             addComboBtn.innerHTML = '<i class="bi bi-bag-plus me-1"></i> Complete Selections to Add';
+            if (buyComboNowBtn) {
+                buyComboNowBtn.disabled = true;
+            }
         }
     }
 
@@ -790,6 +874,68 @@ function initComboBuilder() {
                 addComboBtn.disabled = false;
                 addComboBtn.innerHTML = '<i class="bi bi-bag-check-fill me-1"></i> Add Set to Bag';
                 showToast('Failed to add combo set. Please try again.', 'error');
+            });
+        });
+    }
+
+    // Handle Buy Combo Now (Fast-Track into Checkout)
+    if (buyComboNowBtn) {
+        buyComboNowBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+
+            // Validate all components
+            const payloadComponents = [];
+            for (const comp of comboComponentsData) {
+                const sel = selections[comp.id];
+                if (!sel || !sel.variantId) {
+                    showToast(`Please complete selections for ${comp.component_title}.`, 'error');
+                    const compCard = document.getElementById('step-card-' + comp.id);
+                    if (compCard) {
+                        compCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+                payloadComponents.push({
+                    component_id: comp.id,
+                    variant_id: sel.variantId
+                });
+            }
+
+            const qty = comboQtyInput ? parseInt(comboQtyInput.value) || 1 : 1;
+            const comboProductId = comboProductIdInput ? parseInt(comboProductIdInput.value) : 0;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+            const formData = new FormData();
+            formData.append('action', 'add_combo_to_cart');
+            formData.append('combo_product_id', comboProductId);
+            formData.append('components', JSON.stringify(payloadComponents));
+            formData.append('quantity', qty);
+            formData.append('csrf_token', csrfToken);
+
+            const origHtml = buyComboNowBtn.innerHTML;
+            buyComboNowBtn.disabled = true;
+            buyComboNowBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Fast Tracking...';
+
+            fetch('process-cart.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    buyComboNowBtn.innerHTML = '<i class="bi bi-check2 me-1 text-success"></i> Redirecting...';
+                    window.location.href = 'checkout.php';
+                } else {
+                    buyComboNowBtn.disabled = false;
+                    buyComboNowBtn.innerHTML = origHtml;
+                    showToast(data.message, 'error');
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                buyComboNowBtn.disabled = false;
+                buyComboNowBtn.innerHTML = origHtml;
+                showToast('Failed to process combo set. Please try again.', 'error');
             });
         });
     }
@@ -1658,6 +1804,87 @@ function initGuestAddressAutofill() {
         }
     });
 }
+
+// Floating Mobile Sticky Action Bar for Product Detail Page
+function initMobileStickyBar() {
+    const stickyBar = document.getElementById('pdp-sticky-mobile-bar');
+    if (!stickyBar) return;
+
+    const stickyAddBtn = document.getElementById('mobile-sticky-add-cart-btn');
+    const stickyBuyBtn = document.getElementById('mobile-sticky-buy-now-btn');
+    const mainForm = document.getElementById('purchase-form') || document.getElementById('combo-builder-container');
+
+    let isVisible = false;
+
+    function evaluateStickyVisibility() {
+        if (window.innerWidth >= 992) {
+            if (isVisible) {
+                stickyBar.style.transform = 'translateY(115%)';
+                isVisible = false;
+            }
+            return;
+        }
+
+        if (!mainForm) return;
+
+        const rect = mainForm.getBoundingClientRect();
+        // Show sticky bar once user scrolls past the main buy box
+        const shouldShow = rect.bottom < 80;
+
+        if (shouldShow && !isVisible) {
+            stickyBar.style.transform = 'translateY(0)';
+            isVisible = true;
+        } else if (!shouldShow && isVisible) {
+            stickyBar.style.transform = 'translateY(115%)';
+            isVisible = false;
+        }
+    }
+
+    window.addEventListener('scroll', evaluateStickyVisibility, { passive: true });
+    window.addEventListener('resize', evaluateStickyVisibility);
+    evaluateStickyVisibility();
+
+    // Delegate mobile Add to Cart click
+    if (stickyAddBtn) {
+        stickyAddBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const variantInput = document.getElementById('selected-variant-id');
+            const mainAddBtn = document.getElementById('add-to-cart-btn') || document.getElementById('add-combo-to-cart-btn');
+
+            // If variant is required but not selected yet, scroll user to options
+            if (variantInput && !variantInput.value && mainForm) {
+                mainForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showToast('Please select your Color and Size first', 'error');
+                return;
+            }
+
+            if (mainAddBtn) {
+                mainAddBtn.click();
+            }
+        });
+    }
+
+    // Delegate mobile Buy Now click
+    if (stickyBuyBtn) {
+        stickyBuyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const variantInput = document.getElementById('selected-variant-id');
+            const mainBuyBtn = document.getElementById('buy-now-btn') || document.getElementById('buy-combo-now-btn');
+
+            // If variant is required but not selected yet, scroll user to options
+            if (variantInput && !variantInput.value && mainForm) {
+                mainForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                showToast('Please select your Color and Size first', 'error');
+                return;
+            }
+
+            if (mainBuyBtn) {
+                mainBuyBtn.click();
+            }
+        });
+    }
+}
+
 
 
 

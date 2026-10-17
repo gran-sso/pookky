@@ -105,8 +105,7 @@ $logs = $pdo->query("
             <form action="inventory.php" method="POST">
                 <?php echo csrf_field(); ?>
                 
-                <div class="mb-3">
-                    <label for="variant_id" class="form-label small">Target SKU Variant <span class="text-danger">*</span></label>
+                <div class="form-floating mb-3">
                     <select class="form-select" id="variant_id" name="variant_id" required>
                         <option value="">-- Choose SKU Variant --</option>
                         <?php foreach ($all_variants as $v): ?>
@@ -115,24 +114,25 @@ $logs = $pdo->query("
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <label for="variant_id">Target SKU Variant <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="change_type" class="form-label small">Adjustment Type <span class="text-danger">*</span></label>
+                <div class="form-floating mb-3">
                     <select class="form-select" id="change_type" name="change_type" required>
                         <option value="restock">Restock (Adding stock)</option>
                         <option value="adjustment">Adjustment (Stock correction)</option>
                     </select>
+                    <label for="change_type">Adjustment Type <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="quantity_changed" class="form-label small">Quantity Difference (Use negative for reductions) <span class="text-danger">*</span></label>
-                    <input type="number" class="form-control" id="quantity_changed" name="quantity_changed" required placeholder="e.g. 50 or -5">
+                <div class="form-floating mb-3">
+                    <input type="number" class="form-control" id="quantity_changed" name="quantity_changed" required placeholder="Quantity Difference *">
+                    <label for="quantity_changed">Quantity (+ or -) <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="notes" class="form-label small">Internal Ledger Notes</label>
-                    <input type="text" class="form-control" id="notes" name="notes" placeholder="e.g. Received shipment #1043 or Shrinkage count">
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="notes" name="notes" placeholder="Internal Ledger Notes">
+                    <label for="notes">Internal Ledger Notes</label>
                 </div>
 
                 <div class="d-grid mt-4">

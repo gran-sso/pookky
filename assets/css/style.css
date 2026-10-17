@@ -48,6 +48,17 @@
     --transition-smooth: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     --box-shadow-soft: 0 8px 30px rgba(93, 58, 66, 0.05);
     --box-shadow-medium: 0 12px 40px rgba(93, 58, 66, 0.08);
+
+    /* Checkout & Global Input Design Tokens */
+    --input-border: #D9D9D9;
+    --input-border-focus: #111111;
+    --input-bg: #FFFFFF;
+    --input-color: #111111;
+    --input-placeholder: #8C8C8C;
+    --input-radius: 6px;
+    --input-padding-y: 12px;
+    --input-padding-x: 14px;
+    --input-font-size: 14px;
 }
 
 /* Base Body Typography: Montserrat 400 */
@@ -252,22 +263,311 @@ small,
     letter-spacing: 0.01em;
 }
 
-/* 14. Form Labels & Inputs: Montserrat 400 or 500 with CurrencySafe fallback */
+/* 14. Form Labels & Inputs: Modern Checkout Design Pattern */
 label,
 .form-label {
     font-family: 'CurrencySafe', var(--font-ui) !important;
-    font-weight: var(--fw-medium);
-    font-size: 0.875rem;
+    font-weight: 500;
+    font-size: 13px;
+    color: #374151;
+    margin-bottom: 6px;
     letter-spacing: 0.01em;
 }
+
+/* Universal Textbox & Select Input Pattern matching Checkout */
 .form-control,
 .form-select,
-input,
-select,
-textarea {
+.shopify-input {
     font-family: 'CurrencySafe', var(--font-ui) !important;
     font-weight: var(--fw-regular);
-    font-size: 0.925rem;
+    font-size: var(--input-font-size, 14px) !important;
+    color: var(--input-color, #111111) !important;
+    background-color: var(--input-bg, #FFFFFF) !important;
+    border: 1px solid var(--input-border, #D9D9D9) !important;
+    border-radius: var(--input-radius, 6px) !important;
+    padding: var(--input-padding-y, 12px) var(--input-padding-x, 14px) !important;
+    line-height: 1.5 !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out, background-color 0.15s ease-in-out !important;
+    box-shadow: none !important;
+}
+
+/* Crisp 1px Outline Focus Ring */
+.form-control:focus,
+.form-select:focus,
+.shopify-input:focus {
+    border-color: var(--input-border-focus, #111111) !important;
+    box-shadow: 0 0 0 1px var(--input-border-focus, #111111) !important;
+    outline: none !important;
+    background-color: #FFFFFF !important;
+    color: #111111 !important;
+}
+
+/* Neutral Placeholder */
+.form-control::placeholder,
+.form-select::placeholder,
+.shopify-input::placeholder {
+    color: var(--input-placeholder, #8C8C8C) !important;
+    opacity: 1 !important;
+}
+
+/* Compact input variant (sm) - clean, proportionate, and crisp */
+.form-control-sm,
+.form-select-sm {
+    padding: 9px 12px !important;
+    font-size: 13.5px !important;
+    border-radius: 6px !important;
+}
+
+/* Large input variant (lg) */
+.form-control-lg,
+.form-select-lg {
+    padding: 14px 16px !important;
+    font-size: 15px !important;
+    border-radius: 8px !important;
+}
+
+/* Disabled and Readonly States */
+.form-control:disabled,
+.form-control[readonly]:not(.qty-input),
+.form-select:disabled {
+    background-color: #F8F9FA !important;
+    border-color: #E5E7EB !important;
+    color: #6B7280 !important;
+    cursor: not-allowed;
+    box-shadow: none !important;
+}
+
+/* Textarea controls */
+textarea.form-control,
+textarea.shopify-input {
+    min-height: 90px;
+    resize: vertical;
+}
+
+/* Form Checkboxes & Switches matching Checkout */
+.form-check-input {
+    border: 1px solid var(--input-border, #D9D9D9) !important;
+    cursor: pointer;
+    transition: all 0.15s ease-in-out;
+}
+
+.form-check-input:checked {
+    background-color: #111111 !important;
+    border-color: #111111 !important;
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.15) !important;
+    border-color: #111111 !important;
+}
+
+/* Input Group Harmonization */
+.input-group {
+    border-radius: var(--input-radius, 6px);
+}
+
+.input-group > .form-control,
+.input-group > .form-select {
+    position: relative;
+    flex: 1 1 auto;
+    width: 1%;
+    min-width: 0;
+}
+
+.input-group > .form-control:focus,
+.input-group > .form-select:focus {
+    z-index: 3;
+}
+
+.input-group-text {
+    border: 1px solid var(--input-border, #D9D9D9) !important;
+    background-color: #F9FAFB !important;
+    color: #4B5563 !important;
+    padding: 10px 14px !important;
+    font-size: 14px !important;
+    font-weight: 500;
+}
+
+.input-group > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+    margin-left: -1px;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+}
+
+.input-group > :not(:last-child):not(.dropdown-toggle):not(.dropdown-menu):not(.form-floating) {
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+}
+
+/* Controlled Component Overrides */
+/* 1. Cart & Product Detail Quantity Stepper Input (must remain transparent & borderless) */
+.qty-input,
+.input-group .qty-input,
+input.qty-input {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+    height: auto !important;
+    width: 34px !important;
+    font-size: 14px !important;
+    color: inherit !important;
+}
+.qty-input:focus {
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+/* 2. Header Search Input Bar */
+.search-input-header {
+    border: 1px solid var(--input-border, #D9D9D9) !important;
+    background-color: #FFFFFF !important;
+    padding: 7px 32px 7px 14px !important;
+    border-radius: 50px !important;
+    font-size: 13px !important;
+    color: #111111 !important;
+    transition: width 0.25s ease, border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+.search-input-header:focus {
+    border-color: var(--input-border-focus, #111111) !important;
+    box-shadow: 0 0 0 1px var(--input-border-focus, #111111) !important;
+    width: 190px !important;
+    outline: none !important;
+}
+
+/* 3. OTP 6-Digit input boxes */
+.otp-digit {
+    width: 48px !important;
+    height: 54px !important;
+    padding: 0 !important;
+    font-size: 24px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    border-radius: 8px !important;
+}
+
+/* ==========================================================
+   MODERN FLOATING LABEL DESIGN SYSTEM
+   Luxury e-commerce floating label pattern
+   ========================================================== */
+
+.form-floating {
+    position: relative;
+    display: block;
+}
+
+.form-floating > .form-control,
+.form-floating > .form-select,
+.form-floating > .shopify-input {
+    height: 54px !important;
+    min-height: 54px !important;
+    padding: 1.45rem 0.875rem 0.45rem 0.875rem !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    color: #111111 !important;
+    background-color: #FFFFFF !important;
+    border: 1px solid var(--input-border, #D9D9D9) !important;
+    border-radius: var(--input-radius, 6px) !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.form-floating > .form-control:focus,
+.form-floating > .form-select:focus,
+.form-floating > .shopify-input:focus {
+    border-color: var(--input-border-focus, #111111) !important;
+    box-shadow: 0 0 0 1px var(--input-border-focus, #111111) !important;
+    outline: none !important;
+}
+
+/* Floating Label Default (Resting / Placeholder Position) */
+.form-floating > label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    padding: 16px 14px !important;
+    font-size: 13.5px !important;
+    font-weight: 400 !important;
+    color: var(--input-placeholder, #8C8C8C) !important;
+    pointer-events: none;
+    border: 1px solid transparent;
+    transform-origin: 0 0;
+    transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out, color 0.15s ease-in-out !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    z-index: 2;
+    margin-bottom: 0 !important;
+}
+
+/* Floating Label Transformed State (Focused, Filled, or Select active) */
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-control:not(:placeholder-shown) ~ label,
+.form-floating > .form-select ~ label,
+.form-floating > .shopify-input:focus ~ label,
+.form-floating > .shopify-input:not(:placeholder-shown) ~ label {
+    opacity: 0.9 !important;
+    transform: scale(0.78) translateY(-0.55rem) translateX(0.12rem) !important;
+    color: #6B7280 !important;
+    font-weight: 500 !important;
+}
+
+.form-floating > .form-control:focus ~ label,
+.form-floating > .form-select:focus ~ label,
+.form-floating > .shopify-input:focus ~ label {
+    color: var(--input-border-focus, #111111) !important;
+    opacity: 1 !important;
+}
+
+/* Hide native placeholder when resting so it does not collide with floating label */
+.form-floating > .form-control::placeholder,
+.form-floating > .shopify-input::placeholder {
+    color: transparent !important;
+}
+
+.form-floating > .form-control:focus::placeholder,
+.form-floating > .shopify-input:focus::placeholder {
+    color: #C0C0C0 !important;
+}
+
+/* Floating Textarea Variant */
+.form-floating > textarea.form-control,
+.form-floating > textarea.shopify-input {
+    height: auto !important;
+    min-height: 110px !important;
+    padding-top: 1.65rem !important;
+}
+
+.form-floating > textarea.form-control ~ label,
+.form-floating > textarea.shopify-input ~ label {
+    height: auto !important;
+}
+
+/* Select element specifics inside form-floating */
+.form-floating > .form-select {
+    padding-top: 1.45rem !important;
+    padding-bottom: 0.45rem !important;
+}
+
+/* Disabled & Readonly inside form-floating */
+.form-floating > .form-control:disabled ~ label,
+.form-floating > .form-control[readonly] ~ label,
+.form-floating > .form-select:disabled ~ label {
+    color: #9CA3AF !important;
+}
+
+/* Mobile Touch & Viewport Optimizations */
+@media (max-width: 768px) {
+    .form-floating > .form-control,
+    .form-floating > .form-select,
+    .form-floating > .shopify-input {
+        font-size: 16px !important; /* Prevents unwanted auto-zoom on mobile iOS Safari */
+    }
+    .form-floating > label {
+        font-size: 14px !important;
+    }
 }
 
 /* 15. Supporting Accent Tagline ("INNER WEARS" motif from logo) */
@@ -1527,6 +1827,27 @@ textarea {
 
     .footer-veesta p {
         font-size: 13px;
+    }
+
+    /* Product Detail Page Mobile Sticky Bar */
+    .pdp-page-container {
+        padding-bottom: 85px !important;
+    }
+
+    #pdp-sticky-mobile-bar {
+        padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
+        box-shadow: 0 -4px 22px rgba(0, 0, 0, 0.1) !important;
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        background-color: rgba(255, 255, 255, 0.98) !important;
+    }
+
+    #pdp-sticky-mobile-bar .btn {
+        transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    #pdp-sticky-mobile-bar .btn:active {
+        transform: scale(0.97);
     }
 }
 

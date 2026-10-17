@@ -298,9 +298,9 @@ try {
                         <div id="modal-info-description" class="fst-italic mt-1"></div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="admin_notes" class="form-label small fw-bold">Internal Moderation Notes / Explanation <span class="text-danger">*</span></label>
-                        <textarea class="form-control form-control-sm" name="admin_notes" id="admin_notes" required rows="3" placeholder="Enter reason for approval or rejection (e.g. Received damaged, restocking items...)"></textarea>
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" name="admin_notes" id="admin_notes" required placeholder="Internal Moderation Notes / Explanation *" style="height: 110px;"></textarea>
+                        <label for="admin_notes">Internal Moderation Notes / Explanation <span class="text-danger">*</span></label>
                     </div>
                 </div>
                 <div class="modal-footer border-0">

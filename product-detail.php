@@ -2,7 +2,9 @@
 // product-detail.php
 // Product Detailed Page with Variant Matrix swatches & Reviews
 
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/security.php';
 
 $slug = trim($_GET['slug'] ?? '');
@@ -25,6 +27,12 @@ try {
     }
 
     $product_id = $product['id'];
+
+    // Dynamic SEO details
+    $meta_title = !empty($product['seo_title']) ? $product['seo_title'] : ($product['name'] . ' | ' . APP_NAME);
+    $meta_desc = !empty($product['seo_description']) ? $product['seo_description'] : substr(strip_tags($product['description'] ?? ''), 0, 160);
+
+    require_once __DIR__ . '/includes/header.php';
 
     // Update SEO details dynamically
     // Fetch product images with color tagging
@@ -256,7 +264,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
 }
 ?>
 
-<div class="container py-5">
+<div class="container py-5 pdp-page-container">
     <div class="row g-5">
         <!-- 1. Product Images Gallery with Interactive Zoom -->
         <div class="col-12 col-md-6">
@@ -429,21 +437,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                             <?php endforeach; ?>
                         </div>
 
-                        <!-- Quantities & Cart Buttons -->
-                        <div class="row g-2 align-items-center">
-                            <div class="col-4 col-sm-3 col-md-3">
-                                <div class="input-group input-group-sm border rounded-pill overflow-hidden bg-white">
-                                    <button type="button" class="btn btn-link text-dark py-1 qty-btn qty-minus" style="text-decoration:none;"><i class="bi bi-minus"></i></button>
-                                    <input type="text" class="form-control text-center bg-transparent border-0 small qty-input" id="combo-qty" name="quantity" value="1" readonly style="width:30px;">
-                                    <button type="button" class="btn btn-link text-dark py-1 qty-btn qty-plus" style="text-decoration:none;"><i class="bi bi-plus"></i></button>
+                        <!-- Quantities & Cart Action Buttons -->
+                        <div class="d-flex flex-column gap-2 mt-4">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="input-group input-group-sm border rounded-pill overflow-hidden bg-white" style="width: 105px; height: 44px; flex-shrink: 0;">
+                                    <button type="button" class="btn btn-link text-dark py-1 qty-btn qty-minus px-2" style="text-decoration:none;"><i class="bi bi-minus"></i></button>
+                                    <input type="text" class="form-control text-center bg-transparent border-0 small qty-input fw-bold" id="combo-qty" name="quantity" value="1" readonly style="width:30px;">
+                                    <button type="button" class="btn btn-link text-dark py-1 qty-btn qty-plus px-2" style="text-decoration:none;"><i class="bi bi-plus"></i></button>
                                 </div>
-                            </div>
-                            <div class="col-8 col-sm-9 col-md-9 d-flex gap-2">
-                                <button type="button" id="add-combo-to-cart-btn" class="btn btn-brand flex-grow-1 py-2" disabled>
-                                    <i class="bi bi-bag-plus me-1"></i> Complete Selections to Add
+                                <button type="button" class="btn btn-outline-secondary rounded-pill wishlist-toggle d-flex align-items-center justify-content-center" data-product-id="<?php echo $product_id; ?>" title="Add to Wishlist" style="width: 44px; height: 44px; flex-shrink: 0;">
+                                    <i class="bi bi-heart fs-6"></i>
                                 </button>
-                                <button type="button" class="btn btn-brand-outline wishlist-toggle" data-product-id="<?php echo $product_id; ?>" title="Wishlist">
-                                    <i class="bi bi-heart"></i>
+                                <button type="button" id="add-combo-to-cart-btn" class="btn btn-brand-outline rounded-pill flex-grow-1 fw-semibold d-flex align-items-center justify-content-center" disabled style="height: 44px;">
+                                    <i class="bi bi-bag-plus me-1"></i> Add Set to Bag
+                                </button>
+                            </div>
+                            <div>
+                                <button type="button" id="buy-combo-now-btn" class="btn btn-dark w-100 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center" disabled style="height: 46px; background-color: #18181b; border: none; letter-spacing: 0.3px;">
+                                    <i class="bi bi-lightning-charge-fill me-1 text-warning"></i> Buy Set Now
                                 </button>
                             </div>
                         </div>
@@ -495,19 +506,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                         <span class="text-muted small">Please choose Color and Size to view stock availability.</span>
                     </div>
 
-                    <!-- Quantities & Cart buttons -->
-                    <div class="row g-2 align-items-center">
-                        <div class="col-4 col-sm-3 col-md-3">
-                            <div class="input-group input-group-sm border rounded-pill overflow-hidden">
-                                <button type="button" class="btn btn-link text-dark py-1 qty-btn qty-minus" style="text-decoration:none;"><i class="bi bi-minus"></i></button>
-                                <input type="text" class="form-control text-center bg-transparent border-0 small qty-input" id="product-qty" name="quantity" value="1" readonly style="width:30px;">
-                                <button type="button" class="btn btn-link text-dark py-1 qty-btn qty-plus" style="text-decoration:none;"><i class="bi bi-plus"></i></button>
+                    <!-- Quantities & Cart Action Buttons -->
+                    <div class="d-flex flex-column gap-2 mt-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="input-group input-group-sm border rounded-pill overflow-hidden bg-white" style="width: 105px; height: 44px; flex-shrink: 0;">
+                                <button type="button" class="btn btn-link text-dark py-1 qty-btn qty-minus px-2" style="text-decoration:none;"><i class="bi bi-minus"></i></button>
+                                <input type="text" class="form-control text-center bg-transparent border-0 small qty-input fw-bold" id="product-qty" name="quantity" value="1" readonly style="width:30px;">
+                                <button type="button" class="btn btn-link text-dark py-1 qty-btn qty-plus px-2" style="text-decoration:none;"><i class="bi bi-plus"></i></button>
                             </div>
+                            <button type="button" class="btn btn-outline-secondary rounded-pill wishlist-toggle d-flex align-items-center justify-content-center" data-product-id="<?php echo $product_id; ?>" title="Add to Wishlist" style="width: 44px; height: 44px; flex-shrink: 0;">
+                                <i class="bi bi-heart fs-6"></i>
+                            </button>
+                            <button type="button" id="add-to-cart-btn" class="btn btn-brand-outline rounded-pill flex-grow-1 fw-semibold d-flex align-items-center justify-content-center" disabled style="height: 44px;">
+                                <i class="bi bi-bag-plus me-1"></i> Add to Bag
+                            </button>
                         </div>
-                        <div class="col-8 col-sm-9 col-md-9 d-flex gap-2">
-                            <button type="button" id="add-to-cart-btn" class="btn btn-brand flex-grow-1" disabled>Add to Cart</button>
-                            <button type="button" class="btn btn-brand-outline wishlist-toggle" data-product-id="<?php echo $product_id; ?>" title="Wishlist">
-                                <i class="bi bi-heart"></i>
+                        <div>
+                            <button type="button" id="buy-now-btn" class="btn btn-dark w-100 rounded-pill fw-bold shadow-sm d-flex align-items-center justify-content-center" disabled style="height: 46px; background-color: #18181b; border: none; letter-spacing: 0.3px;">
+                                <i class="bi bi-lightning-charge-fill me-1 text-warning"></i> Buy Now
                             </button>
                         </div>
                     </div>
@@ -661,8 +677,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
 
                     <form action="product-detail.php?slug=<?php echo $slug; ?>#reviews" method="POST">
                         <?php echo csrf_field(); ?>
-                        <div class="mb-3">
-                            <label for="rating" class="form-label small fw-bold">Star Rating <span class="text-danger">*</span></label>
+                        <div class="form-floating mb-3">
                             <select class="form-select" id="rating" name="rating" required>
                                 <?php 
                                     $cur_rating = (int)($existing_user_review['rating'] ?? 5);
@@ -673,10 +688,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                                 <option value="2" <?php echo $cur_rating === 2 ? 'selected' : ''; ?>>★★☆☆☆ (2 Stars - Poor)</option>
                                 <option value="1" <?php echo $cur_rating === 1 ? 'selected' : ''; ?>>★☆☆☆☆ (1 Star - Terrible)</option>
                             </select>
+                            <label for="rating">Star Rating <span class="text-danger">*</span></label>
                         </div>
-                        <div class="mb-4">
-                            <label for="comment" class="form-label small fw-bold">Your Review <span class="text-danger">*</span></label>
-                            <textarea class="form-control" id="comment" name="comment" rows="3" required placeholder="Tell us about the fabric quality, comfort, fit, and feel..."><?php echo e($existing_user_review['comment'] ?? ''); ?></textarea>
+                        <div class="form-floating mb-4">
+                            <textarea class="form-control" id="comment" name="comment" style="height: 120px;" required placeholder="Tell us about the fabric quality, comfort, fit, and feel..."><?php echo e($existing_user_review['comment'] ?? ''); ?></textarea>
+                            <label for="comment">Your Review <span class="text-danger">*</span></label>
                         </div>
                         <button type="submit" name="submit_review" class="btn btn-brand w-100">
                             <?php echo $existing_user_review ? 'Update My Review' : 'Submit Review'; ?>
@@ -826,6 +842,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                     <?php endforeach; ?>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Sticky Mobile Action Bar (100% Mobile Optimized) -->
+<div id="pdp-sticky-mobile-bar" class="d-lg-none fixed-bottom bg-white border-top shadow-lg py-2 px-3" style="z-index: 1045; transform: translateY(115%); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);">
+    <div class="d-flex align-items-center gap-2 justify-content-between">
+        <div class="small lh-sm flex-shrink-0" style="max-width: 110px;">
+            <div class="fw-bold text-dark text-truncate" style="font-size: 13px;"><?php echo e($product['name']); ?></div>
+            <div class="text-rose fw-bold small font-display mt-0" id="mobile-bar-price">
+                <?php echo format_price(!empty($product['offer_price']) ? $product['offer_price'] : $product['regular_price']); ?>
+            </div>
+        </div>
+        <div class="d-flex gap-2 flex-grow-1 justify-content-end">
+            <button type="button" id="mobile-sticky-add-cart-btn" class="btn btn-sm btn-brand-outline rounded-pill fw-semibold py-2 px-2 flex-grow-1 d-flex align-items-center justify-content-center" style="font-size: 12.5px; height: 42px;">
+                <i class="bi bi-bag-plus me-1"></i> Add
+            </button>
+            <button type="button" id="mobile-sticky-buy-now-btn" class="btn btn-sm btn-dark rounded-pill fw-bold py-2 px-3 flex-grow-1 shadow-sm text-nowrap d-flex align-items-center justify-content-center" style="font-size: 12.5px; height: 42px; background-color: #18181b; border: none;">
+                <i class="bi bi-lightning-charge-fill text-warning me-1"></i> Buy Now
+            </button>
         </div>
     </div>
 </div>

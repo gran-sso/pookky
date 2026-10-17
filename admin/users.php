@@ -106,45 +106,45 @@ $roles = $pdo->query("SELECT * FROM roles ORDER BY id ASC")->fetchAll();
             <form action="users.php" method="POST">
                 <?php echo csrf_field(); ?>
                 
-                <div class="mb-3">
-                    <label for="name" class="form-label small">Full Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control form-control-sm" id="name" name="name" required placeholder="e.g. Priya Sharma">
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="name" name="name" required placeholder="Full Name *">
+                    <label for="name">Full Name <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="username" class="form-label small">Username <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control form-control-sm" id="username" name="username" required placeholder="e.g. priyas">
+                <div class="form-floating mb-3">
+                    <input type="text" class="form-control" id="username" name="username" required placeholder="Username *">
+                    <label for="username">Username <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="email" class="form-label small">Email Address <span class="text-danger">*</span></label>
-                    <input type="email" class="form-control form-control-sm" id="email" name="email" required placeholder="e.g. priya@pookky.com">
+                <div class="form-floating mb-3">
+                    <input type="email" class="form-control" id="email" name="email" required placeholder="Email Address *">
+                    <label for="email">Email Address <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="password" class="form-label small">Secret Password <span class="text-danger">*</span></label>
-                    <input type="password" class="form-control form-control-sm" id="password" name="password" required placeholder="••••••••">
+                <div class="form-floating mb-3">
+                    <input type="password" class="form-control" id="password" name="password" required placeholder="Secret Password *">
+                    <label for="password">Secret Password <span class="text-danger">*</span></label>
                 </div>
 
-                <div class="mb-3">
-                    <label for="role_id" class="form-label small">System Role <span class="text-danger">*</span></label>
-                    <select class="form-select form-select-sm" id="role_id" name="role_id" required>
+                <div class="form-floating mb-3">
+                    <select class="form-select" id="role_id" name="role_id" required>
                         <option value="">-- Select Role --</option>
                         <?php foreach ($roles as $rl): ?>
                             <option value="<?php echo $rl['id']; ?>"><?php echo e($rl['name']); ?></option>
                         <?php endforeach; ?>
                     </select>
+                    <label for="role_id">System Role <span class="text-danger">*</span></label>
                 </div>
 
                 <div class="mb-3">
                     <div class="form-check form-switch mt-2">
                         <input class="form-check-input" type="checkbox" id="status" name="status" checked>
-                        <label class="form-check-label small" for="status">Active Profile</label>
+                        <label class="form-check-label small fw-semibold" for="status">Active Profile</label>
                     </div>
                 </div>
 
                 <div class="d-grid mt-4">
-                    <button type="submit" name="add_admin" class="btn btn-brand">Create Administrator</button>
+                    <button type="submit" name="add_admin" class="btn btn-brand rounded-pill">Create Administrator</button>
                 </div>
             </form>
         </div>

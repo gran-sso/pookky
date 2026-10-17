@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,500;0,6..96,600;0,6..96,700;1,6..96,400;1,6..96,500&family=Montserrat:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&subset=latin,latin-ext,devanagari&display=swap" rel="stylesheet">
     <!-- Core Custom CSS -->
-    <link rel="stylesheet" href="../assets/css/style.css?v=2.3">
+    <link rel="stylesheet" href="../assets/css/style.css?v=2.8">
     <style>
         body {
             background-color: var(--brand-blush);
@@ -112,14 +112,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <form action="login.php" method="POST">
             <?php echo csrf_field(); ?>
-            <div class="mb-3">
-                <label for="username" class="form-label small text-muted">Username or Email</label>
-                <input type="text" class="form-control" id="username" name="username" placeholder="e.g. admin" required autocomplete="username">
+            <div class="form-floating mb-3">
+                <input type="text" class="form-control" id="username" name="username" placeholder="Username or Email" required autocomplete="username">
+                <label for="username">Username or Email</label>
             </div>
             
-            <div class="mb-4">
-                <label for="password" class="form-label small text-muted">Password</label>
-                <input type="password" class="form-control" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+            <div class="form-floating mb-4">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+                <label for="password">Password</label>
             </div>
             
             <div class="d-grid">

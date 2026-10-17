@@ -208,4 +208,65 @@ HTML;
 
     return $sent;
 }
+
+/**
+ * Send order confirmation email to customer
+ *
+ * @param string $to_email Customer's email
+ * @param string $order_number Generated order identifier
+ * @param float $grand_total Order grand total
+ * @param string $receiver_name Name of recipient
+ * @return bool
+ */
+function send_order_confirmation_email($to_email, $order_number, $grand_total, $receiver_name = 'Valued Customer') {
+    $site_name = defined('SITE_NAME') ? SITE_NAME : 'Pookky';
+    $site_email = defined('SITE_EMAIL') ? SITE_EMAIL : 'info@pookky.com';
+    $currency_symbol = defined('CURRENCY_SYMBOL') ? CURRENCY_SYMBOL : '₹';
+    $current_year = date('Y');
+    $formatted_amount = number_format((float)$grand_total, 2);
+
+    $subject = "Order Confirmed: #{$order_number} - {$site_name}";
+    $html_body = <<<HTML
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Order Confirmation</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px; color: #212529; }
+        .container { max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; border: 1px solid #eeeeee; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .header { background: #E12B56; color: #ffffff; padding: 30px 20px; text-align: center; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: bold; }
+        .content { padding: 30px 25px; line-height: 1.6; }
+        .order-card { background: #fdf5f7; border: 1px solid #fae1e6; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center; }
+        .order-num { font-size: 20px; font-weight: bold; color: #E12B56; margin-bottom: 5px; }
+        .order-total { font-size: 18px; color: #212529; font-weight: 600; }
+        .footer { background: #f8f9fa; padding: 20px; text-align: center; font-size: 12px; color: #6c757d; border-top: 1px solid #eeeeee; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Thank You for Your Order!</h1>
+        </div>
+        <div class="content">
+            <p>Dear <strong>{$receiver_name}</strong>,</p>
+            <p>We are excited to let you know that we have received your order and our team is getting it ready for shipment.</p>
+            <div class="order-card">
+                <div class="order-num">Order #{$order_number}</div>
+                <div class="order-total">Total: {$currency_symbol}{$formatted_amount}</div>
+            </div>
+            <p>You can track the progress of your order anytime by visiting your account dashboard on our website.</p>
+            <p>If you have any questions, feel free to reply directly to this email or contact our support team at <a href="mailto:{$site_email}">{$site_email}</a>.</p>
+        </div>
+        <div class="footer">
+            &copy; {$current_year} {$site_name}. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>
+HTML;
+
+    return send_html_email($to_email, $receiver_name, $subject, $html_body);
+}
 ?>

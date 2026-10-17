@@ -45,6 +45,20 @@ function load_env($filePath) {
 }
 load_env(__DIR__ . '/../.env');
 
+// Environment-aware error reporting
+$app_env = env('APP_ENV', 'development');
+if ($app_env === 'production') {
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
+    error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+    ini_set('log_errors', 1);
+} else {
+    ini_set('display_errors', 1);
+    ini_set('display_startup_errors', 1);
+    error_reporting(E_ALL);
+    ini_set('log_errors', 1);
+}
+
 if (session_status() === PHP_SESSION_NONE) {
     // Configure secure session settings before starting session
     ini_set('session.cookie_httponly', 1);

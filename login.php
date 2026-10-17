@@ -2,9 +2,11 @@
 // login.php
 // Customer Login Page
 
-$meta_title = 'Customer Login | Pookky';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/auth.php';
 
 // Capture redirect target if specified
 $redirect_target = $_GET['redirect'] ?? ($_POST['redirect'] ?? ($_SESSION['redirect_url'] ?? ''));
@@ -78,6 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$meta_title = 'Customer Login | ' . APP_NAME;
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="container py-5">
@@ -116,14 +121,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="hidden" name="redirect" value="<?php echo e($redirect_target); ?>">
                     <?php endif; ?>
                     
-                    <div class="mb-3">
-                        <label for="email" class="form-label small text-muted">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" required placeholder="e.g. janesmith@email.com">
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="email" name="email" required placeholder="Email Address" autocomplete="email">
+                        <label for="email">Email Address</label>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="password" class="form-label small text-muted">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required placeholder="••••••••">
+                    <div class="form-floating mb-4">
+                        <input type="password" class="form-control" id="password" name="password" required placeholder="Password" autocomplete="current-password">
+                        <label for="password">Password</label>
                     </div>
 
                     <div class="d-grid mb-3">

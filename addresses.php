@@ -2,9 +2,11 @@
 // addresses.php
 // Customer Addresses Book Manager
 
-$meta_title = 'Manage Shipping Addresses | Pookky';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/auth.php';
 
 // Requires customer login
 require_customer_login();
@@ -17,6 +19,7 @@ $return_to = $_GET['return_to'] ?? $_POST['return_to'] ?? '';
 if (!empty($return_to) && (strpos($return_to, 'http') === 0 || strpos($return_to, '//') === 0)) {
     $return_to = '';
 }
+$action = $_GET['action'] ?? '';
 
 // Handle Add / Edit / Delete Address Post
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -97,6 +100,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$meta_title = 'Manage Shipping Addresses | ' . APP_NAME;
+require_once __DIR__ . '/includes/header.php';
+
 // Fetch Customer profile
 $customer = get_logged_in_customer();
 
@@ -133,7 +139,7 @@ if ($action === 'edit') {
                 </div>
                 <div class="list-group list-group-flush small">
                     <a href="dashboard.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-person me-2"></i> Profile Dashboard</a>
-                    <a href="addresses.php" class="list-group-item list-group-item-action border-0 active bg-brand-blush text-rose fw-bold rounded p-2 mb-1"><i class="bi bi-geo-alt me-2"></i> Shipping Addresses</a>
+                    <a href="addresses.php" class="list-group-item list-group-item-action border-0 active bg-brand-blush text-rose fw-bold rounded p-2 mb-1"><i class="bi bi-geo-alt me-2"></i> Address Book</a>
                     <a href="orders.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-box me-2"></i> Order History</a>
                     <a href="wishlist.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-heart me-2"></i> My Wishlist</a>
                     <a href="logout.php" class="list-group-item list-group-item-action border-0 text-danger rounded p-2"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>
@@ -162,47 +168,53 @@ if ($action === 'edit') {
                                 <input type="hidden" name="address_id" value="<?php echo $edit_addr['id']; ?>">
                             <?php endif; ?>
 
-                            <div class="mb-2">
-                                <label for="address_type" class="form-label small text-muted">Address Type</label>
-                                <select class="form-select form-select-sm" id="address_type" name="address_type" required>
+                            <div class="form-floating mb-3">
+                                <select class="form-select" id="address_type" name="address_type" required>
                                     <option value="Home" <?php echo (isset($edit_addr['address_type']) && $edit_addr['address_type'] === 'Home') ? 'selected' : ''; ?>>Home (Default)</option>
                                     <option value="Work" <?php echo (isset($edit_addr['address_type']) && $edit_addr['address_type'] === 'Work') ? 'selected' : ''; ?>>Work (Office)</option>
                                     <option value="Other" <?php echo (isset($edit_addr['address_type']) && $edit_addr['address_type'] === 'Other') ? 'selected' : ''; ?>>Other</option>
                                 </select>
+                                <label for="address_type">Address Type</label>
                             </div>
 
-                            <div class="mb-2">
-                                <label for="receiver_name" class="form-label small text-muted">Receiver's Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" id="receiver_name" name="receiver_name" value="<?php echo e($edit_addr['receiver_name'] ?? ''); ?>" required placeholder="e.g. Jane Smith">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="receiver_name" name="receiver_name" value="<?php echo e($edit_addr['receiver_name'] ?? ''); ?>" required placeholder="Receiver's Name" autocomplete="name">
+                                <label for="receiver_name">Receiver's Name <span class="text-danger">*</span></label>
                             </div>
 
-                            <div class="mb-2">
-                                <label for="receiver_phone" class="form-label small text-muted">Receiver's Contact Phone <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" id="receiver_phone" name="receiver_phone" value="<?php echo e($edit_addr['receiver_phone'] ?? ''); ?>" required placeholder="e.g. +91 98765 43210">
+                            <div class="form-floating mb-3">
+                                <input type="tel" class="form-control" id="receiver_phone" name="receiver_phone" value="<?php echo e($edit_addr['receiver_phone'] ?? ''); ?>" required placeholder="Receiver's Phone" autocomplete="tel">
+                                <label for="receiver_phone">Receiver's Contact Phone <span class="text-danger">*</span></label>
                             </div>
 
-                            <div class="mb-2">
-                                <label for="address_line1" class="form-label small text-muted">Address Line 1 <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control form-control-sm" id="address_line1" name="address_line1" value="<?php echo e($edit_addr['address_line1'] ?? ''); ?>" required placeholder="e.g. Flat 302, Sunrise Apts">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="address_line1" name="address_line1" value="<?php echo e($edit_addr['address_line1'] ?? ''); ?>" required placeholder="Address Line 1" autocomplete="shipping address-line1">
+                                <label for="address_line1">Address Line 1 (Flat, House No, Bldg) <span class="text-danger">*</span></label>
                             </div>
 
-                            <div class="mb-2">
-                                <label for="address_line2" class="form-label small text-muted">Address Line 2 (Optional)</label>
-                                <input type="text" class="form-control form-control-sm" id="address_line2" name="address_line2" value="<?php echo e($edit_addr['address_line2'] ?? ''); ?>" placeholder="e.g. Sector 5, Outer Ring Rd">
+                            <div class="form-floating mb-3">
+                                <input type="text" class="form-control" id="address_line2" name="address_line2" value="<?php echo e($edit_addr['address_line2'] ?? ''); ?>" placeholder="Address Line 2 (Optional)" autocomplete="shipping address-line2">
+                                <label for="address_line2">Address Line 2 (Street, Area - Optional)</label>
                             </div>
 
                             <div class="row g-2 mb-3">
                                 <div class="col-6">
-                                    <label for="city" class="form-label small text-muted">City <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm" id="city" name="city" value="<?php echo e($edit_addr['city'] ?? ''); ?>" required placeholder="Bangalore">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="city" name="city" value="<?php echo e($edit_addr['city'] ?? ''); ?>" required placeholder="City" autocomplete="shipping address-level2">
+                                        <label for="city">City <span class="text-danger">*</span></label>
+                                    </div>
                                 </div>
                                 <div class="col-6">
-                                    <label for="state" class="form-label small text-muted">State <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm" id="state" name="state" value="<?php echo e($edit_addr['state'] ?? ''); ?>" required placeholder="Karnataka">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="state" name="state" value="<?php echo e($edit_addr['state'] ?? ''); ?>" required placeholder="State" autocomplete="shipping address-level1">
+                                        <label for="state">State <span class="text-danger">*</span></label>
+                                    </div>
                                 </div>
-                                <div class="col-12">
-                                    <label for="pincode" class="form-label small text-muted">Pincode <span class="text-danger">*</span></label>
-                                    <input type="text" class="form-control form-control-sm" id="pincode" name="pincode" value="<?php echo e($edit_addr['pincode'] ?? ''); ?>" required placeholder="560001">
+                                <div class="col-12 mt-2">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="pincode" name="pincode" value="<?php echo e($edit_addr['pincode'] ?? ''); ?>" required placeholder="Pincode" autocomplete="shipping postal-code" inputmode="numeric" maxlength="6">
+                                        <label for="pincode">Pincode <span class="text-danger">*</span></label>
+                                    </div>
                                 </div>
                             </div>
 

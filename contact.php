@@ -86,28 +86,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-sm-6">
-                            <label for="name" class="form-label small text-muted">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm" id="name" name="name" required placeholder="e.g. Priya Sharma">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="name" name="name" required placeholder="Full Name" autocomplete="name">
+                                <label for="name">Full Name <span class="text-danger">*</span></label>
+                            </div>
                         </div>
                         <div class="col-12 col-sm-6">
-                            <label for="phone" class="form-label small text-muted">Phone Number (Optional)</label>
-                            <input type="text" class="form-control form-control-sm" id="phone" name="phone" placeholder="e.g. +91 98765 43210">
+                            <div class="form-floating">
+                                <input type="tel" class="form-control" id="phone" name="phone" placeholder="Phone Number" autocomplete="tel">
+                                <label for="phone">Phone Number (Optional)</label>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="email" class="form-label small text-muted">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control form-control-sm" id="email" name="email" required placeholder="e.g. priya@pookky.com">
+                    <div class="form-floating mb-3">
+                        <input type="email" class="form-control" id="email" name="email" required placeholder="Email Address" autocomplete="email">
+                        <label for="email">Email Address <span class="text-danger">*</span></label>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="subject" class="form-label small text-muted">Subject <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control form-control-sm" id="subject" name="subject" required placeholder="e.g. Bulk order enquiry / size help">
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="subject" name="subject" required placeholder="Subject">
+                        <label for="subject">Subject <span class="text-danger">*</span></label>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="message" class="form-label small text-muted">Detailed Message <span class="text-danger">*</span></label>
-                        <textarea class="form-control form-control-sm" id="message" name="message" rows="4" required placeholder="Write details here..."></textarea>
+                    <div class="form-floating mb-4">
+                        <textarea class="form-control" id="message" name="message" style="height: 120px;" required placeholder="Detailed Message"></textarea>
+                        <label for="message">Detailed Message <span class="text-danger">*</span></label>
                     </div>
 
                     <button type="submit" class="btn btn-brand w-100">Send Enquiry Message</button>

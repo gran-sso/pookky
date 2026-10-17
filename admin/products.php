@@ -758,52 +758,63 @@ if ($action === 'add' || $action === 'edit'):
             <div class="row g-3 mb-4">
                 <!-- Core info -->
                 <div class="col-12 col-md-4">
-                    <label for="name" class="form-label fw-bold small">Product Name <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="name" name="name" value="<?php echo e($product['name'] ?? ''); ?>" required>
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="name" name="name" value="<?php echo e($product['name'] ?? ''); ?>" required placeholder="Product Name *">
+                        <label for="name">Product Name <span class="text-danger">*</span></label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label for="product_type" class="form-label fw-bold small">Product Type <span class="text-danger">*</span></label>
-                    <select class="form-select" id="product_type" name="product_type" required>
-                        <option value="single" <?php echo (!isset($product['product_type']) || $product['product_type'] === 'single') ? 'selected' : ''; ?>>Single Product</option>
-                        <option value="combo" <?php echo (isset($product['product_type']) && $product['product_type'] === 'combo') ? 'selected' : ''; ?>>Combo / Bundle Set</option>
-                    </select>
+                    <div class="form-floating">
+                        <select class="form-select" id="product_type" name="product_type" required>
+                            <option value="single" <?php echo (!isset($product['product_type']) || $product['product_type'] === 'single') ? 'selected' : ''; ?>>Single Product</option>
+                            <option value="combo" <?php echo (isset($product['product_type']) && $product['product_type'] === 'combo') ? 'selected' : ''; ?>>Combo / Bundle Set</option>
+                        </select>
+                        <label for="product_type">Product Type <span class="text-danger">*</span></label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-2">
-                    <label for="sku" class="form-label fw-bold small">SKU <span class="text-danger">*</span></label>
-                    <input type="text" class="form-control" id="sku" name="sku" value="<?php echo e($product['sku'] ?? ''); ?>" placeholder="e.g. BR-ELG-001" required>
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="sku" name="sku" value="<?php echo e($product['sku'] ?? ''); ?>" placeholder="SKU (e.g. BR-ELG-001) *" required>
+                        <label for="sku">SKU <span class="text-danger">*</span></label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label for="category_id" class="form-label fw-bold small">Category <span class="text-danger">*</span></label>
-                    <select class="form-select" id="category_id" name="category_id" required>
-                        <option value="">-- Choose Category --</option>
-                        <?php foreach ($categories as $cat): ?>
-                            <option value="<?php echo $cat['id']; ?>" <?php echo (isset($product['category_id']) && $product['category_id'] == $cat['id']) ? 'selected' : ''; ?>>
-                                <?php echo e($cat['name']); ?>
-                            </option>
-                        <?php endforeach; ?>
-                    </select>
+                    <div class="form-floating">
+                        <select class="form-select" id="category_id" name="category_id" required>
+                            <option value="">-- Choose Category --</option>
+                            <?php foreach ($categories as $cat): ?>
+                                <option value="<?php echo $cat['id']; ?>" <?php echo (isset($product['category_id']) && $product['category_id'] == $cat['id']) ? 'selected' : ''; ?>>
+                                    <?php echo e($cat['name']); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <label for="category_id">Category <span class="text-danger">*</span></label>
+                    </div>
                 </div>
 
                 <!-- Pricing & Stock -->
                 <div class="col-12 col-md-3">
-                    <label for="regular_price" class="form-label fw-bold small">Regular Price (INR) <span class="text-danger">*</span></label>
-                    <input type="number" step="0.01" class="form-control" id="regular_price" name="regular_price" value="<?php echo e($product['regular_price'] ?? ''); ?>" required>
+                    <div class="form-floating">
+                        <input type="number" step="0.01" class="form-control" id="regular_price" name="regular_price" value="<?php echo e($product['regular_price'] ?? ''); ?>" required placeholder="Regular Price (INR) *">
+                        <label for="regular_price">Regular Price (INR) <span class="text-danger">*</span></label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label for="offer_price" class="form-label fw-bold small">Offer Price (INR) (Optional)</label>
-                    <input type="number" step="0.01" class="form-control" id="offer_price" name="offer_price" value="<?php echo e($product['offer_price'] ?? ''); ?>">
+                    <div class="form-floating">
+                        <input type="number" step="0.01" class="form-control" id="offer_price" name="offer_price" value="<?php echo e($product['offer_price'] ?? ''); ?>" placeholder="Offer Price (INR)">
+                        <label for="offer_price">Offer Price (INR) (Optional)</label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-3">
-                    <label for="gst_percentage" class="form-label fw-bold small">GST Rate (%)</label>
-                    <input type="number" step="0.1" class="form-control" id="gst_percentage" name="gst_percentage" value="<?php echo e($product['gst_percentage'] ?? DEFAULT_GST_RATE); ?>">
+                    <div class="form-floating">
+                        <input type="number" step="0.1" class="form-control" id="gst_percentage" name="gst_percentage" value="<?php echo e($product['gst_percentage'] ?? DEFAULT_GST_RATE); ?>" placeholder="GST Rate (%)">
+                        <label for="gst_percentage">GST Rate (%)</label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-3" id="stock_field_wrapper">
-                    <label for="initial_stock" class="form-label fw-bold small">
-                        <?php echo $action === 'add' ? 'Initial Stock Quantity' : 'Current Stock Units'; ?> <span class="text-danger">*</span>
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light"><i class="bi bi-box-seam"></i></span>
-                        <input type="number" min="0" class="form-control" id="initial_stock" name="initial_stock" value="<?php echo e($product_total_stock); ?>" placeholder="e.g. 50" required>
+                    <div class="form-floating">
+                        <input type="number" min="0" class="form-control" id="initial_stock" name="initial_stock" value="<?php echo e($product_total_stock); ?>" placeholder="Stock Units *" required>
+                        <label for="initial_stock"><?php echo $action === 'add' ? 'Initial Stock Quantity' : 'Current Stock Units'; ?> <span class="text-danger">*</span></label>
                     </div>
                     <div class="form-text small text-muted">
                         <?php if ($action === 'edit' && $product_var_count > 0): ?>
@@ -958,12 +969,16 @@ if ($action === 'add' || $action === 'edit'):
 
                 <!-- Product Specifications -->
                 <div class="col-12 col-md-4">
-                    <label for="fit_type" class="form-label fw-bold small">Fit/Style Type</label>
-                    <input type="text" class="form-control" id="fit_type" name="fit_type" value="<?php echo e($product['fit_type'] ?? ''); ?>" placeholder="e.g. Underwired full coverage">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="fit_type" name="fit_type" value="<?php echo e($product['fit_type'] ?? ''); ?>" placeholder="Fit / Style Type">
+                        <label for="fit_type">Fit / Style Type</label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-8">
-                    <label for="fabric_details" class="form-label fw-bold small">Fabric Details (Text Description)</label>
-                    <input type="text" class="form-control" id="fabric_details" name="fabric_details" value="<?php echo e($product['fabric_details'] ?? ''); ?>" placeholder="e.g. 80% Nylon, 20% Elastane">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="fabric_details" name="fabric_details" value="<?php echo e($product['fabric_details'] ?? ''); ?>" placeholder="Fabric Details (Text Description)">
+                        <label for="fabric_details">Fabric Details (Text Description)</label>
+                    </div>
                 </div>
 
                 <?php if (!empty($all_fabrics)): ?>
@@ -997,13 +1012,17 @@ if ($action === 'add' || $action === 'edit'):
                 <?php endif; ?>
 
                 <div class="col-12">
-                    <label for="description" class="form-label fw-bold small">Product Description <span class="text-danger">*</span></label>
-                    <textarea class="form-control" id="description" name="description" rows="4" required><?php echo e($product['description'] ?? ''); ?></textarea>
+                    <div class="form-floating">
+                        <textarea class="form-control" id="description" name="description" required placeholder="Product Description *" style="height: 130px;"><?php echo e($product['description'] ?? ''); ?></textarea>
+                        <label for="description">Product Description <span class="text-danger">*</span></label>
+                    </div>
                 </div>
 
                 <div class="col-12">
-                    <label for="care_instructions" class="form-label fw-bold small">Care Instructions</label>
-                    <textarea class="form-control" id="care_instructions" name="care_instructions" rows="2" placeholder="e.g. Hand wash cold, dry flat in shade."><?php echo e($product['care_instructions'] ?? ''); ?></textarea>
+                    <div class="form-floating">
+                        <textarea class="form-control" id="care_instructions" name="care_instructions" placeholder="Care Instructions" style="height: 90px;"><?php echo e($product['care_instructions'] ?? ''); ?></textarea>
+                        <label for="care_instructions">Care Instructions</label>
+                    </div>
                 </div>
 
                 <!-- Product Images & Gallery Section -->
@@ -1191,22 +1210,28 @@ if ($action === 'add' || $action === 'edit'):
                     <h6 class="fw-bold mb-3"><i class="bi bi-search me-2"></i> SEO Configurations (Optional)</h6>
                 </div>
                 <div class="col-12 col-md-6">
-                    <label for="seo_title" class="form-label small">SEO Browser Title</label>
-                    <input type="text" class="form-control" id="seo_title" name="seo_title" value="<?php echo e($product['seo_title'] ?? ''); ?>" placeholder="e.g. Elegance Lace Bra | Brand Name">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="seo_title" name="seo_title" value="<?php echo e($product['seo_title'] ?? ''); ?>" placeholder="SEO Browser Title">
+                        <label for="seo_title">SEO Browser Title</label>
+                    </div>
                 </div>
                 <div class="col-12 col-md-6">
-                    <label for="slug_override" class="form-label small">URL Slug</label>
-                    <input type="text" class="form-control" id="slug" name="slug" value="<?php echo e($product['slug'] ?? ''); ?>" placeholder="e.g. elegance-lace-underwire-bra">
+                    <div class="form-floating">
+                        <input type="text" class="form-control" id="slug" name="slug" value="<?php echo e($product['slug'] ?? ''); ?>" placeholder="URL Slug">
+                        <label for="slug">URL Slug</label>
+                    </div>
                 </div>
                 <div class="col-12">
-                    <label for="seo_description" class="form-label small">SEO Search Meta Description</label>
-                    <textarea class="form-control" id="seo_description" name="seo_description" rows="2" placeholder="Brief summary of product shown in search results."><?php echo e($product['seo_description'] ?? ''); ?></textarea>
+                    <div class="form-floating">
+                        <textarea class="form-control" id="seo_description" name="seo_description" placeholder="SEO Search Meta Description" style="height: 90px;"><?php echo e($product['seo_description'] ?? ''); ?></textarea>
+                        <label for="seo_description">SEO Search Meta Description</label>
+                    </div>
                 </div>
             </div>
 
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="d-flex gap-2 align-items-center">
-                    <button type="submit" name="<?php echo $action === 'add' ? 'add_product' : 'edit_product'; ?>" class="btn btn-brand">Save Product</button>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button type="submit" name="<?php echo $action === 'add' ? 'add_product' : 'edit_product'; ?>" class="btn btn-brand rounded-pill px-4">Save Product</button>
                     <a href="products.php" class="btn btn-outline-secondary rounded-pill px-4">Cancel</a>
                     <button type="button" id="btn_clear_draft" class="btn btn-outline-danger btn-sm rounded-pill px-3" style="display:none;" title="Clear unsaved draft">
                         <i class="bi bi-trash3 me-1"></i> Clear Draft
@@ -1909,42 +1934,51 @@ if ($action === 'add' || $action === 'edit'):
         </div>
 
         <!-- Filter & Search Toolbar -->
-        <form method="GET" action="products.php" class="row g-2 mb-4 p-3 bg-light rounded-3 border">
+        <form method="GET" action="products.php" class="row g-2 mb-4 p-3 bg-light rounded-3 border align-items-center">
             <div class="col-12 col-md-4">
-                <div class="input-group">
-                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" name="search" class="form-control border-start-0" placeholder="Search by name, SKU, details..." value="<?php echo e($search_query); ?>">
+                <div class="form-floating">
+                    <input type="text" name="search" id="product_search_filter" class="form-control" placeholder="Search by name, SKU, details..." value="<?php echo e($search_query); ?>">
+                    <label for="product_search_filter">Search name, SKU, details...</label>
                 </div>
             </div>
             <div class="col-6 col-md-3">
-                <select name="category_id" class="form-select">
-                    <option value="">All Categories</option>
-                    <?php foreach ($filter_categories as $fcat): ?>
-                        <option value="<?php echo $fcat['id']; ?>" <?php echo $filter_category == $fcat['id'] ? 'selected' : ''; ?>>
-                            <?php echo e($fcat['name']); ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
+                <div class="form-floating">
+                    <select name="category_id" id="filter_category_id" class="form-select">
+                        <option value="">All Categories</option>
+                        <?php foreach ($filter_categories as $fcat): ?>
+                            <option value="<?php echo $fcat['id']; ?>" <?php echo $filter_category == $fcat['id'] ? 'selected' : ''; ?>>
+                                <?php echo e($fcat['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <label for="filter_category_id">Category</label>
+                </div>
             </div>
             <div class="col-6 col-md-2">
-                <select name="stock_filter" class="form-select">
-                    <option value="all" <?php echo $filter_stock === 'all' ? 'selected' : ''; ?>>All Stock</option>
-                    <option value="in_stock" <?php echo $filter_stock === 'in_stock' ? 'selected' : ''; ?>>In Stock</option>
-                    <option value="low_stock" <?php echo $filter_stock === 'low_stock' ? 'selected' : ''; ?>>Low Stock (≤5)</option>
-                    <option value="out_of_stock" <?php echo $filter_stock === 'out_of_stock' ? 'selected' : ''; ?>>Out of Stock (0)</option>
-                </select>
+                <div class="form-floating">
+                    <select name="stock_filter" id="filter_stock" class="form-select">
+                        <option value="all" <?php echo $filter_stock === 'all' ? 'selected' : ''; ?>>All Stock</option>
+                        <option value="in_stock" <?php echo $filter_stock === 'in_stock' ? 'selected' : ''; ?>>In Stock</option>
+                        <option value="low_stock" <?php echo $filter_stock === 'low_stock' ? 'selected' : ''; ?>>Low Stock (≤5)</option>
+                        <option value="out_of_stock" <?php echo $filter_stock === 'out_of_stock' ? 'selected' : ''; ?>>Out of Stock (0)</option>
+                    </select>
+                    <label for="filter_stock">Stock Level</label>
+                </div>
             </div>
             <div class="col-6 col-md-2">
-                <select name="product_type" class="form-select">
-                    <option value="all" <?php echo $filter_type === 'all' ? 'selected' : ''; ?>>All Types</option>
-                    <option value="single" <?php echo $filter_type === 'single' ? 'selected' : ''; ?>>Single Products</option>
-                    <option value="combo" <?php echo $filter_type === 'combo' ? 'selected' : ''; ?>>Combo Sets</option>
-                </select>
+                <div class="form-floating">
+                    <select name="product_type" id="filter_product_type" class="form-select">
+                        <option value="all" <?php echo $filter_type === 'all' ? 'selected' : ''; ?>>All Types</option>
+                        <option value="single" <?php echo $filter_type === 'single' ? 'selected' : ''; ?>>Single Products</option>
+                        <option value="combo" <?php echo $filter_type === 'combo' ? 'selected' : ''; ?>>Combo Sets</option>
+                    </select>
+                    <label for="filter_product_type">Product Type</label>
+                </div>
             </div>
-            <div class="col-6 col-md-1 d-flex gap-1">
-                <button type="submit" class="btn btn-dark w-100" title="Filter"><i class="bi bi-funnel"></i></button>
+            <div class="col-6 col-md-1 d-flex gap-1" style="min-height: 54px; align-items: center;">
+                <button type="submit" class="btn btn-dark w-100" title="Apply Filter" style="height: 54px; border-radius: 6px;"><i class="bi bi-funnel"></i></button>
                 <?php if ($search_query !== '' || $filter_category > 0 || $filter_stock !== 'all' || $filter_type !== 'all' || $filter_status !== 'all'): ?>
-                    <a href="products.php" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-x-lg"></i></a>
+                    <a href="products.php" class="btn btn-outline-secondary d-flex align-items-center justify-content-center" title="Reset Filters" style="height: 54px; min-width: 44px; border-radius: 6px;"><i class="bi bi-x-lg"></i></a>
                 <?php endif; ?>
             </div>
         </form>

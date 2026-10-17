@@ -24,6 +24,7 @@ function get_setting($key, $default = null) {
 
 // Define configuration constants with fallbacks from settings table
 define('SITE_NAME', get_setting('site_name', 'Pookky'));
+define('APP_NAME', SITE_NAME);
 define('SITE_EMAIL', get_setting('site_email', 'info@pookky.com'));
 define('SITE_PHONE', get_setting('site_phone', '+91 98765 43210'));
 define('SITE_LOGO', BASE_URL . 'assets/images/logo.png');
@@ -37,11 +38,17 @@ define('CURRENCY_CODE', get_setting('currency_code', 'INR'));
 define('SHIPPING_FLAT_RATE', (float)get_setting('shipping_flat_rate', 99.00));
 define('FREE_SHIPPING_THRESHOLD', (float)get_setting('free_shipping_threshold', 999.00));
 define('DEFAULT_GST_RATE', (float)get_setting('default_gst_rate', 18.00));
-define('COMPANY_ADDRESS', get_setting('address_company', 'Pookky Innerwear Mfg Ltd.'));
-define('COMPANY_LEGAL_NAME', get_setting('company_legal_name', 'Pookky Innerwear Mfg Ltd.'));
+define('COMPANY_ADDRESS', get_setting('address_company', 'St. Joseph Garments, Phase 2, Industrial Area, Bangalore, Karnataka - 560001'));
+define('COMPANY_LEGAL_NAME', get_setting('company_legal_name', 'St. Joseph Garments'));
+define('COMPANY_GSTIN', get_setting('company_gstin', ''));
+define('COMPANY_REG_NUMBER', get_setting('company_reg_number', ''));
+define('COMPANY_PAN', get_setting('company_pan', ''));
+define('INVOICE_AUTHORIZED_SIGNATORY', get_setting('invoice_authorized_signatory', 'St. Joseph Garments'));
+define('INVOICE_TERMS_NOTES', get_setting('invoice_terms_notes', "1. Standard exchange policies apply within 7 days of delivery.\n2. Lingerie items must remain unworn with tags attached.\n3. All disputes subject to local jurisdiction."));
 define('FOOTER_ABOUT_TEXT', get_setting('footer_about_text', "Pookky is a leading ladies' innerwear brand dedicated to delivering luxury, comfort, and perfect fit. We design and manufacture premium lingerie using the finest fabrics for the modern woman."));
 define('SUPPORT_HOURS', get_setting('support_hours', 'Monday to Saturday, 9:00 AM to 6:00 PM'));
 define('RETURN_WINDOW_DAYS', (int)get_setting('return_window_days', 7));
+
 
 // Social Media Links
 define('SOCIAL_FACEBOOK', get_setting('social_facebook', 'https://facebook.com'));
@@ -68,8 +75,10 @@ define('RAZORPAY_KEY_ID', env('RAZORPAY_KEY_ID') ?: get_setting('razorpay_key_id
 define('RAZORPAY_KEY_SECRET', env('RAZORPAY_KEY_SECRET') ?: get_setting('razorpay_key_secret', ''));
 define('RAZORPAY_WEBHOOK_SECRET', env('RAZORPAY_WEBHOOK_SECRET') ?: get_setting('razorpay_webhook_secret', ''));
 define('RAZORPAY_MODE', get_setting('razorpay_mode', 'test'));
-$razorpay_enabled_setting = get_setting('razorpay_enabled', '0');
-define('RAZORPAY_ENABLED', (bool)($razorpay_enabled_setting === '1' && !empty(RAZORPAY_KEY_ID)));
+$razorpay_enabled_setting = get_setting('razorpay_enabled', '1');
+$env_razorpay_enabled = env('RAZORPAY_ENABLED');
+define('RAZORPAY_ENABLED', (bool)(!empty(RAZORPAY_KEY_ID) && ($env_razorpay_enabled !== null ? (bool)$env_razorpay_enabled : ($razorpay_enabled_setting === '1' || $razorpay_enabled_setting === 1))));
+
 
 // Site Notice / Pre-Launch Testing Banner Configuration
 define('SITE_NOTICE_ENABLED', (bool)(get_setting('site_notice_enabled', '1') === '1'));

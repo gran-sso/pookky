@@ -344,8 +344,7 @@ if ($view_id):
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="order_id" value="<?php echo $order['id']; ?>">
 
-                    <div class="mb-3">
-                        <label for="order_status" class="form-label small fw-bold">Order Lifecycle Status</label>
+                    <div class="form-floating mb-3">
                         <select class="form-select" id="order_status" name="order_status">
                             <option value="pending" <?php echo $order['order_status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
                             <option value="processing" <?php echo $order['order_status'] === 'processing' ? 'selected' : ''; ?>>Processing</option>
@@ -354,26 +353,27 @@ if ($view_id):
                             <option value="cancelled" <?php echo $order['order_status'] === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
                             <option value="returned" <?php echo $order['order_status'] === 'returned' ? 'selected' : ''; ?>>Returned</option>
                         </select>
+                        <label for="order_status">Order Lifecycle Status</label>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="payment_status" class="form-label small fw-bold">Payment Status</label>
+                    <div class="form-floating mb-3">
                         <select class="form-select" id="payment_status" name="payment_status">
                             <option value="pending" <?php echo $order['payment_status'] === 'pending' ? 'selected' : ''; ?>>Pending</option>
                             <option value="paid" <?php echo $order['payment_status'] === 'paid' ? 'selected' : ''; ?>>Paid</option>
                             <option value="refunded" <?php echo $order['payment_status'] === 'refunded' ? 'selected' : ''; ?>>Refunded</option>
                             <option value="failed" <?php echo $order['payment_status'] === 'failed' ? 'selected' : ''; ?>>Failed</option>
                         </select>
+                        <label for="payment_status">Payment Status</label>
                     </div>
 
-                    <div class="mb-3 pt-2 border-top">
-                        <label for="courier_name" class="form-label small fw-bold">Courier Partner Name</label>
-                        <input type="text" class="form-control form-control-sm" id="courier_name" name="courier_name" value="<?php echo e($order['courier_name'] ?? ''); ?>" placeholder="e.g. Delhivery, Bluedart">
+                    <div class="form-floating mb-3 pt-1">
+                        <input type="text" class="form-control" id="courier_name" name="courier_name" value="<?php echo e($order['courier_name'] ?? ''); ?>" placeholder="Courier Partner Name">
+                        <label for="courier_name">Courier Partner Name</label>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="tracking_number" class="form-label small fw-bold">AWB Courier Tracking ID</label>
-                        <input type="text" class="form-control form-control-sm" id="tracking_number" name="tracking_number" value="<?php echo e($order['tracking_number'] ?? ''); ?>" placeholder="e.g. AWB1049382">
+                    <div class="form-floating mb-4">
+                        <input type="text" class="form-control" id="tracking_number" name="tracking_number" value="<?php echo e($order['tracking_number'] ?? ''); ?>" placeholder="AWB Courier Tracking ID">
+                        <label for="tracking_number">AWB Courier Tracking ID</label>
                     </div>
 
                     <div class="d-grid">
@@ -402,8 +402,9 @@ if ($view_id):
                                     <input type="hidden" name="return_id" value="<?php echo $req['id']; ?>">
                                     <input type="hidden" name="moderate_return" value="1">
                                     
-                                    <div class="mb-2">
-                                        <textarea class="form-control form-control-sm" name="admin_notes" placeholder="Admin notes (reason for reject/approval)..." required rows="2"></textarea>
+                                    <div class="form-floating mb-3">
+                                        <textarea class="form-control" name="admin_notes" id="admin_notes_<?php echo $req['id']; ?>" placeholder="Admin Remarks (Reason for Decision)" style="height: 85px;" required></textarea>
+                                        <label for="admin_notes_<?php echo $req['id']; ?>">Admin Remarks (Reason for Decision)</label>
                                     </div>
                                     <div class="d-flex gap-2">
                                         <button type="submit" name="return_status" value="approved" class="btn btn-sm btn-success flex-grow-1">Approve</button>

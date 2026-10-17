@@ -355,13 +355,13 @@ foreach ($mappings_raw as $m) {
             <form action="fabrics.php" method="POST">
                 <?php echo csrf_field(); ?>
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label for="add_fabric_name" class="form-label fw-bold small">Fabric Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="add_fabric_name" name="name" placeholder="e.g. Organic Cotton, French Lace, Mulberry Silk" required>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="add_fabric_name" name="name" placeholder="Fabric Material Name *" required>
+                        <label for="add_fabric_name">Fabric Material Name <span class="text-danger">*</span></label>
                     </div>
-                    <div class="mb-3">
-                        <label for="add_fabric_desc" class="form-label fw-bold small">Description (Optional)</label>
-                        <textarea class="form-control" id="add_fabric_desc" name="description" rows="3" placeholder="Brief info on breathability, softness, texture..."></textarea>
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" id="add_fabric_desc" name="description" placeholder="Description (Optional)" style="height: 100px;"></textarea>
+                        <label for="add_fabric_desc">Description (Optional)</label>
                     </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="add_fabric_status" name="status" value="1" checked>
@@ -389,13 +389,13 @@ foreach ($mappings_raw as $m) {
                 <?php echo csrf_field(); ?>
                 <input type="hidden" name="fabric_id" id="edit_fabric_id" value="">
                 <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label for="edit_fabric_name" class="form-label fw-bold small">Fabric Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="edit_fabric_name" name="name" required>
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="edit_fabric_name" name="name" placeholder="Fabric Material Name *" required>
+                        <label for="edit_fabric_name">Fabric Material Name <span class="text-danger">*</span></label>
                     </div>
-                    <div class="mb-3">
-                        <label for="edit_fabric_desc" class="form-label fw-bold small">Description (Optional)</label>
-                        <textarea class="form-control" id="edit_fabric_desc" name="description" rows="3"></textarea>
+                    <div class="form-floating mb-3">
+                        <textarea class="form-control" id="edit_fabric_desc" name="description" placeholder="Description (Optional)" style="height: 100px;"></textarea>
+                        <label for="edit_fabric_desc">Description (Optional)</label>
                     </div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="edit_fabric_status" name="status" value="1">

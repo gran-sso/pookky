@@ -2,11 +2,16 @@
 // orders.php
 // Customer Order History
 
-$meta_title = 'My Order History | Pookky';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/auth.php';
 
 // Requires customer login
 require_customer_login();
+
+$meta_title = 'My Order History | ' . APP_NAME;
+require_once __DIR__ . '/includes/header.php';
 
 $customer_id = $_SESSION['customer_id'];
 $customer = get_logged_in_customer();
@@ -35,7 +40,7 @@ try {
                 </div>
                 <div class="list-group list-group-flush small">
                     <a href="dashboard.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-person me-2"></i> Profile Dashboard</a>
-                    <a href="addresses.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-geo-alt me-2"></i> Shipping Addresses</a>
+                    <a href="addresses.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-geo-alt me-2"></i> Address Book</a>
                     <a href="orders.php" class="list-group-item list-group-item-action border-0 active bg-brand-blush text-rose fw-bold rounded p-2 mb-1"><i class="bi bi-box me-2"></i> Order History</a>
                     <a href="wishlist.php" class="list-group-item list-group-item-action border-0 rounded p-2 mb-1"><i class="bi bi-heart me-2"></i> My Wishlist</a>
                     <a href="logout.php" class="list-group-item list-group-item-action border-0 text-danger rounded p-2"><i class="bi bi-box-arrow-right me-2"></i> Logout</a>

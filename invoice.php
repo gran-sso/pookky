@@ -98,14 +98,24 @@ try {
     <div class="invoice-card rounded shadow-sm">
         <!-- Header -->
         <div class="row g-4 border-bottom pb-4 mb-4">
-            <div class="col-6">
-                <img src="assets/images/logo.png" alt="Pookky" height="42" class="mb-2 d-block">
+            <div class="col-7">
+                <img src="assets/images/logo.png" alt="<?php echo e(SITE_NAME); ?>" height="42" class="mb-2 d-block">
                 <div class="small text-muted mt-2">
-                    <strong><?php echo e(SITE_NAME); ?> Private Limited</strong><br>
-                    <?php echo nl2br(e(COMPANY_ADDRESS)); ?>
+                    <h5 class="fw-bold text-dark mb-0"><?php echo e(COMPANY_LEGAL_NAME); ?></h5>
+                    <div class="small text-secondary mb-1">Brand: <strong><?php echo e(SITE_NAME); ?></strong></div>
+                    <div><?php echo nl2br(e(COMPANY_ADDRESS)); ?></div>
+                    <?php if (!empty(COMPANY_GSTIN)): ?>
+                        <div class="mt-1"><strong>GSTIN:</strong> <?php echo e(COMPANY_GSTIN); ?></div>
+                    <?php endif; ?>
+                    <?php if (!empty(COMPANY_PAN)): ?>
+                        <div><strong>PAN:</strong> <?php echo e(COMPANY_PAN); ?></div>
+                    <?php endif; ?>
+                    <?php if (!empty(COMPANY_REG_NUMBER)): ?>
+                        <div><strong>Reg No:</strong> <?php echo e(COMPANY_REG_NUMBER); ?></div>
+                    <?php endif; ?>
                 </div>
             </div>
-            <div class="col-6 text-end">
+            <div class="col-5 text-end">
                 <h4 class="fw-bold text-secondary">TAX INVOICE</h4>
                 <div class="small text-muted mt-2">
                     Invoice No: <strong><?php echo e($order['order_number']); ?></strong><br>
@@ -223,14 +233,15 @@ try {
 
         <!-- Sign signatures footer -->
         <div class="row g-4 mt-5 pt-4 border-top">
-            <div class="col-6 small text-muted">
-                <strong>Important Information:</strong><br>
-                1. Standard exchange policies apply within 7 days of delivery.<br>
-                2. Lingerie items must remain unworn with tags attached.
+            <div class="col-7 small text-muted">
+                <strong>Important Information / Terms & Conditions:</strong><br>
+                <?php echo nl2br(e(INVOICE_TERMS_NOTES)); ?>
             </div>
-            <div class="col-6 text-end small">
-                <div class="mt-4">Authorized Signatory</div>
-                <div class="fw-bold text-dark mt-1">Pookky Manufacturing Ltd.</div>
+            <div class="col-5 text-end small">
+                <div class="mt-4">For <strong><?php echo e(COMPANY_LEGAL_NAME); ?></strong></div>
+                <div class="fw-bold text-dark mt-2 border-top pt-1 d-inline-block text-center" style="min-width: 190px;">
+                    <?php echo e(INVOICE_AUTHORIZED_SIGNATORY ?: 'Authorized Signatory'); ?>
+                </div>
             </div>
         </div>
     </div>

@@ -2,9 +2,11 @@
 // register.php
 // Customer Registration Page with OTP Email Verification
 
-$meta_title = 'Create Customer Account | Pookky';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/otp.php';
 require_once __DIR__ . '/includes/mail.php';
 
@@ -73,6 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$meta_title = 'Create Customer Account | ' . APP_NAME;
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="container py-5">
@@ -113,29 +118,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-sm-6">
-                            <label for="name" class="form-label small text-muted">Full Name <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" required placeholder="e.g. Jane Smith" value="<?php echo e($name ?? ''); ?>">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="name" name="name" required placeholder="Full Name" value="<?php echo e($name ?? ''); ?>" autocomplete="name">
+                                <label for="name">Full Name <span class="text-danger">*</span></label>
+                            </div>
                         </div>
                         <div class="col-12 col-sm-6">
-                            <label for="phone" class="form-label small text-muted">Phone Number (Optional)</label>
-                            <input type="text" class="form-control" id="phone" name="phone" placeholder="e.g. +91 98765 43210" value="<?php echo e($phone ?? ''); ?>">
+                            <div class="form-floating">
+                                <input type="tel" class="form-control" id="phone" name="phone" placeholder="Phone Number (Optional)" value="<?php echo e($phone ?? ''); ?>" autocomplete="tel">
+                                <label for="phone">Phone Number (Optional)</label>
+                            </div>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label for="email" class="form-label small text-muted">Email Address <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="email" name="email" required placeholder="e.g. janesmith@email.com" value="<?php echo e($email ?? ''); ?>">
+                        <div class="form-floating mb-1">
+                            <input type="email" class="form-control" id="email" name="email" required placeholder="Email Address" value="<?php echo e($email ?? ''); ?>" autocomplete="email">
+                            <label for="email">Email Address <span class="text-danger">*</span></label>
+                        </div>
                         <div class="form-text small text-muted"><i class="bi bi-shield-check text-success"></i> We will send an OTP to verify this email address.</div>
                     </div>
 
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-sm-6">
-                            <label for="password" class="form-label small text-muted">Secret Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" id="password" name="password" required placeholder="Min 6 characters">
+                            <div class="form-floating">
+                                <input type="password" class="form-control" id="password" name="password" required placeholder="Secret Password" autocomplete="new-password">
+                                <label for="password">Secret Password <span class="text-danger">*</span></label>
+                            </div>
                         </div>
                         <div class="col-12 col-sm-6">
-                            <label for="confirm_password" class="form-label small text-muted">Confirm Password <span class="text-danger">*</span></label>
-                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required placeholder="••••••••">
+                            <div class="form-floating">
+                                <input type="password" class="form-control" id="confirm_password" name="confirm_password" required placeholder="Confirm Password" autocomplete="new-password">
+                                <label for="confirm_password">Confirm Password <span class="text-danger">*</span></label>
+                            </div>
                         </div>
                     </div>
 

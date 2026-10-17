@@ -2,9 +2,11 @@
 // verify-otp.php
 // Email OTP Verification Page for New Customer Accounts
 
-$meta_title = 'Verify Email Address | Pookky';
-require_once __DIR__ . '/includes/header.php';
+require_once __DIR__ . '/config/database.php';
+require_once __DIR__ . '/config/constants.php';
+require_once __DIR__ . '/includes/functions.php';
 require_once __DIR__ . '/includes/security.php';
+require_once __DIR__ . '/includes/auth.php';
 require_once __DIR__ . '/includes/otp.php';
 require_once __DIR__ . '/includes/mail.php';
 
@@ -120,6 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$meta_title = 'Verify Email Address | ' . APP_NAME;
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="container py-5">
