@@ -216,19 +216,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['place_order']) || $i
         if ($is_logged_in) {
             // Logged-in Customer Flow
             $selected_address_id = (int)($_POST['address_id'] ?? 0);
-            $new_receiver_name = trim($_POST['new_receiver_name'] ?? '');
-            $new_receiver_phone = trim($_POST['new_receiver_phone'] ?? '');
-            $new_address_line1 = trim($_POST['new_address_line1'] ?? '');
-            $new_address_line2 = trim($_POST['new_address_line2'] ?? '');
-            $new_city = trim($_POST['new_city'] ?? '');
-            $new_state = trim($_POST['new_state'] ?? '');
-            $new_pincode = trim($_POST['new_pincode'] ?? '');
-            $new_address_type = trim($_POST['new_address_type'] ?? 'Home');
-            $new_is_default = isset($_POST['new_is_default']) ? 1 : 0;
 
-            if ($selected_address_id <= 0 && !empty($new_receiver_name)) {
+            // 1. Resolve receiver name across all possible inputs (first_name + last_name, guest_name, new_receiver_name, or customer profile)
+            $first_name = trim($_POST['first_name'] ?? '');
+            $last_name = trim($_POST['last_name'] ?? '');
+            $combined_name = trim($first_name . ' ' . $last_name);
+            $new_receiver_name = !empty($_POST['new_receiver_name']) 
+                ? trim($_POST['new_receiver_name']) 
+                : (!empty($_POST['guest_name']) 
+                    ? trim($_POST['guest_name']) 
+                    : (!empty($combined_name) ? $combined_name : ($logged_in_customer['name'] ?? '')));
+
+            // 2. Resolve phone across inputs
+            $new_receiver_phone = trim($_POST['new_receiver_phone'] ?? ($_POST['guest_phone'] ?? ($logged_in_customer['phone'] ?? '')));
+
+            // 3. Resolve address lines (supports both new_* and guest_* naming conventions)
+            $new_address_line1 = trim($_POST['new_address_line1'] ?? ($_POST['guest_address_line1'] ?? ''));
+            $new_address_line2 = trim($_POST['new_address_line2'] ?? ($_POST['guest_address_line2'] ?? ''));
+            $guest_company = trim($_POST['company'] ?? '');
+            if (!empty($guest_company) && empty($new_address_line2)) {
+                $new_address_line2 = 'Company: ' . $guest_company;
+            }
+
+            // 4. Resolve city, state, pincode
+            $new_city = trim($_POST['new_city'] ?? ($_POST['guest_city'] ?? ''));
+            $new_state = trim($_POST['new_state'] ?? ($_POST['guest_state'] ?? ''));
+            $new_pincode = trim($_POST['new_pincode'] ?? ($_POST['guest_pincode'] ?? ''));
+            $new_address_type = trim($_POST['new_address_type'] ?? 'Home');
+            $new_is_default = (isset($_POST['new_is_default']) || isset($_POST['save_info']) || empty($addresses)) ? 1 : 0;
+
+            // 5. If no saved address was selected, check if user typed in a new address
+            if ($selected_address_id <= 0 && (!empty($new_address_line1) || !empty($new_receiver_name) || !empty($new_city) || !empty($new_pincode))) {
+                if (empty($new_receiver_name)) {
+                    $new_receiver_name = !empty($logged_in_customer['name']) ? $logged_in_customer['name'] : 'Customer';
+                }
+
                 if (empty($new_receiver_phone) || empty($new_address_line1) || empty($new_city) || empty($new_state) || empty($new_pincode)) {
-                    $error = 'Please fill in all required address fields.';
+                    $error = 'Please fill in all required shipping address fields.';
                 } else {
                     try {
                         $ins_addr = $pdo->prepare("
@@ -238,14 +262,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['place_order']) || $i
                         $ins_addr->execute([$customer_id, $new_address_type, $new_receiver_name, $new_receiver_phone, $new_address_line1, $new_address_line2, $new_city, $new_state, $new_pincode, $new_is_default]);
                         $selected_address_id = (int)$pdo->lastInsertId();
                     } catch (PDOException $e) {
-                        $error = 'Failed to save address: ' . $e->getMessage();
+                        // In case address insert fails (e.g. temporary DB lock), do not block checkout
+                    }
+
+                    // Populate delivery details directly
+                    $delivery_name = $new_receiver_name;
+                    $delivery_phone = $new_receiver_phone;
+                    $delivery_line1 = $new_address_line1;
+                    $delivery_line2 = $new_address_line2;
+                    $delivery_city = $new_city;
+                    $delivery_state = $new_state;
+                    $delivery_pincode = $new_pincode;
+
+                    // Update customer account phone if empty
+                    if (empty($logged_in_customer['phone']) && !empty($new_receiver_phone)) {
+                        try {
+                            $up_phone = $pdo->prepare("UPDATE customers SET phone = ? WHERE id = ? AND (phone IS NULL OR phone = '')");
+                            $up_phone->execute([$new_receiver_phone, $customer_id]);
+                        } catch (Exception $e) {}
                     }
                 }
             }
 
-            if ($selected_address_id <= 0 && empty($error)) {
-                $error = 'Please select or provide a delivery address.';
-            } elseif (empty($error)) {
+            // 6. If an existing saved address was chosen
+            if ($selected_address_id > 0 && empty($delivery_line1) && empty($error)) {
                 $addr_stmt = $pdo->prepare("SELECT * FROM addresses WHERE id = ? AND customer_id = ? LIMIT 1");
                 $addr_stmt->execute([$selected_address_id, $customer_id]);
                 $address = $addr_stmt->fetch();
@@ -261,6 +301,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['place_order']) || $i
                     $delivery_state = $address['state'];
                     $delivery_pincode = $address['pincode'];
                 }
+            } elseif ($selected_address_id <= 0 && empty($delivery_line1) && empty($error)) {
+                $error = 'Please select or provide a delivery address.';
             }
         } else {
             // Guest Checkout Flow - Supports both single-name and split-name inputs seamlessly
@@ -1015,6 +1057,17 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
                     <div class="mb-4">
                         <h2 class="h5 fw-bold text-dark mb-3">Delivery</h2>
 
+                        <?php 
+                        $default_first_name = '';
+                        $default_last_name = '';
+                        if ($is_logged_in && !empty($logged_in_customer['name'])) {
+                            $cust_name_parts = explode(' ', trim($logged_in_customer['name']), 2);
+                            $default_first_name = $cust_name_parts[0] ?? '';
+                            $default_last_name = $cust_name_parts[1] ?? '';
+                        }
+                        $need_delivery_required = (!$is_logged_in || empty($addresses));
+                        ?>
+
                         <?php if ($is_logged_in && !empty($addresses)): ?>
                             <!-- Saved Addresses for Logged-in Customer -->
                             <div class="shopify-card-group mb-3" id="saved-address-group">
@@ -1064,8 +1117,8 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
                                                name="first_name" 
                                                placeholder="First name" 
                                                autocomplete="shipping given-name" 
-                                               value="<?php echo e($_POST['first_name'] ?? ''); ?>" 
-                                               required>
+                                               value="<?php echo e($_POST['first_name'] ?? $default_first_name); ?>" 
+                                               <?php echo $need_delivery_required ? 'required' : 'data-required="true"'; ?>>
                                         <label for="first_name">First name</label>
                                     </div>
                                 </div>
@@ -1077,13 +1130,13 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
                                                name="last_name" 
                                                placeholder="Last name" 
                                                autocomplete="shipping family-name" 
-                                               value="<?php echo e($_POST['last_name'] ?? ''); ?>">
+                                               value="<?php echo e($_POST['last_name'] ?? $default_last_name); ?>">
                                         <label for="last_name">Last name</label>
                                     </div>
                                 </div>
                             </div>
                             <!-- Hidden synced guest_name for legacy scripts/autofill compatibility -->
-                            <input type="hidden" id="guest_name" name="guest_name" value="<?php echo e($_POST['guest_name'] ?? ''); ?>">
+                            <input type="hidden" id="guest_name" name="guest_name" value="<?php echo e($_POST['guest_name'] ?? ($logged_in_customer['name'] ?? '')); ?>">
 
                             <!-- Company (optional) -->
                             <div class="form-floating mb-2">
@@ -1106,7 +1159,7 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
                                        placeholder="Address (House/Flat No., Building, Street)" 
                                        autocomplete="shipping address-line1" 
                                        value="<?php echo e($_POST['guest_address_line1'] ?? ''); ?>" 
-                                       required>
+                                       <?php echo $need_delivery_required ? 'required' : 'data-required="true"'; ?>>
                                 <label for="guest_address_line1">Address (House/Flat No., Street)</label>
                             </div>
 
@@ -1133,13 +1186,13 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
                                                placeholder="City" 
                                                autocomplete="shipping address-level2" 
                                                value="<?php echo e($_POST['guest_city'] ?? ''); ?>" 
-                                               required>
+                                               <?php echo $need_delivery_required ? 'required' : 'data-required="true"'; ?>>
                                         <label for="guest_city">City</label>
                                     </div>
                                 </div>
                                 <div class="col-6 col-md-4">
                                     <div class="form-floating">
-                                        <select class="form-select shopify-input" id="guest_state" name="guest_state" autocomplete="shipping address-level1" required>
+                                        <select class="form-select shopify-input" id="guest_state" name="guest_state" autocomplete="shipping address-level1" <?php echo $need_delivery_required ? 'required' : 'data-required="true"'; ?>>
                                             <?php foreach ($indian_states as $st): ?>
                                                 <option value="<?php echo e($st); ?>" <?php echo ($preselected_state === $st) ? 'selected' : ''; ?>>
                                                     <?php echo e($st); ?>
@@ -1160,7 +1213,7 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
                                                inputmode="numeric" 
                                                maxlength="6" 
                                                value="<?php echo e($_POST['guest_pincode'] ?? ''); ?>" 
-                                               required>
+                                               <?php echo $need_delivery_required ? 'required' : 'data-required="true"'; ?>>
                                         <label for="guest_pincode">PIN code</label>
                                     </div>
                                     <div id="guest-pincode-status" class="small mt-1"></div>
@@ -1176,8 +1229,8 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
                                        placeholder="Phone" 
                                        autocomplete="shipping tel" 
                                        inputmode="tel" 
-                                       value="<?php echo e($is_logged_in ? ($logged_in_customer['phone'] ?? '') : ($_POST['guest_phone'] ?? '')); ?>" 
-                                       required>
+                                       value="<?php echo e($is_logged_in ? ($logged_in_customer['phone'] ?? ($_POST['guest_phone'] ?? '')) : ($_POST['guest_phone'] ?? '')); ?>" 
+                                       <?php echo $need_delivery_required ? 'required' : 'data-required="true"'; ?>>
                                 <label for="guest_phone">Phone</label>
                             </div>
                             <div class="form-text small text-muted" style="font-size: 12px;">
@@ -1496,8 +1549,16 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
     function toggleNewAddressBox(show) {
         const fieldsBox = document.getElementById('delivery-fields-box');
         if (fieldsBox) {
-            if (show) fieldsBox.classList.remove('d-none');
-            else fieldsBox.classList.add('d-none');
+            if (show) {
+                fieldsBox.classList.remove('d-none');
+                fieldsBox.querySelectorAll('[data-required="true"]').forEach(el => el.required = true);
+            } else {
+                fieldsBox.classList.add('d-none');
+                fieldsBox.querySelectorAll('[required]').forEach(el => {
+                    el.dataset.required = 'true';
+                    el.required = false;
+                });
+            }
         }
     }
 
