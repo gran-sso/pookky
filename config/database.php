@@ -2,55 +2,66 @@
 // config/database.php
 // Secure PDO Database connection settings
 
+if (defined('POOKKY_DATABASE_LOADED') && isset($GLOBALS['pdo']) && $GLOBALS['pdo'] instanceof PDO) {
+    $pdo = $GLOBALS['pdo'];
+    return;
+}
+define('POOKKY_DATABASE_LOADED', true);
+
 if (!ob_get_level()) {
     ob_start();
 }
 
 // Helper to get environment variables with a fallback
-function env($key, $default = null) {
-    $val = getenv($key);
-    if ($val === false) {
-        $val = $_ENV[$key] ?? $_SERVER[$key] ?? null;
+if (!function_exists('env')) {
+    function env($key, $default = null) {
+        $val = getenv($key);
+        if ($val === false) {
+            $val = $_ENV[$key] ?? $_SERVER[$key] ?? null;
+        }
+        if ($val === null) {
+            return $default;
+        }
+        if ($val === 'true') return true;
+        if ($val === 'false') return false;
+        if ($val === 'empty' || $val === 'null') return '';
+        return $val;
     }
-    if ($val === null) {
-        return $default;
-    }
-    if ($val === 'true') return true;
-    if ($val === 'false') return false;
-    if ($val === 'empty' || $val === 'null') return '';
-    return $val;
 }
 
 // Load environment variables from .env file
-function load_env($filePath) {
-    if (!file_exists($filePath)) {
-        return;
-    }
-    $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    foreach ($lines as $line) {
-        // Skip comments
-        if (strpos(trim($line), '#') === 0) {
-            continue;
+if (!function_exists('load_env')) {
+    function load_env($filePath) {
+        if (!file_exists($filePath)) {
+            return;
         }
-        $parts = explode('=', $line, 2);
-        if (count($parts) === 2) {
-            $key = trim($parts[0]);
-            $val = trim($parts[1]);
-            $val = preg_replace('/^["\']|["\']$/', '', $val);
-            putenv("{$key}={$val}");
-            $_ENV[$key] = $val;
-            $_SERVER[$key] = $val;
+        $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            // Skip comments
+            if (strpos(trim($line), '#') === 0) {
+                continue;
+            }
+            $parts = explode('=', $line, 2);
+            if (count($parts) === 2) {
+                $key = trim($parts[0]);
+                $val = trim($parts[1]);
+                $val = preg_replace('/^["\']|["\']$/', '', $val);
+                putenv("{$key}={$val}");
+                $_ENV[$key] = $val;
+                $_SERVER[$key] = $val;
+            }
         }
     }
 }
 load_env(__DIR__ . '/../.env');
 
-// Environment-aware error reporting
-$app_env = env('APP_ENV', 'development');
+// Environment-aware error reporting (defaults to production on live domain)
+$is_local_env = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1']) || strpos($_SERVER['HTTP_HOST'] ?? '', 'localhost') !== false;
+$app_env = env('APP_ENV', $is_local_env ? 'development' : 'production');
 if ($app_env === 'production') {
     ini_set('display_errors', 0);
     ini_set('display_startup_errors', 0);
-    error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
+    error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT & ~E_NOTICE & ~E_WARNING);
     ini_set('log_errors', 1);
 } else {
     ini_set('display_errors', 1);
@@ -92,10 +103,10 @@ try {
 
     // If environment variables are set, attempt connection using them exactly
     if ($env_host !== null && $env_name !== null) {
-        define('DB_HOST', $env_host);
-        define('DB_USER', $env_user ?? 'root');
-        define('DB_PASS', $env_pass ?? '');
-        define('DB_NAME', $env_name);
+        if (!defined('DB_HOST')) define('DB_HOST', $env_host);
+        if (!defined('DB_USER')) define('DB_USER', $env_user ?? 'root');
+        if (!defined('DB_PASS')) define('DB_PASS', $env_pass ?? '');
+        if (!defined('DB_NAME')) define('DB_NAME', $env_name);
         
         $port_str = $env_port ? ";port=" . $env_port : "";
         try {
