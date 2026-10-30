@@ -39,7 +39,8 @@ function is_admin_logged_in() {
 
 function require_admin_login() {
     if (!is_admin_logged_in()) {
-        header('Location: login.php');
+        $login_path = defined('BASE_URL') ? rtrim(BASE_URL, '/') . '/admin/login.php' : '/admin/login.php';
+        header('Location: ' . $login_path);
         exit;
     }
 }
