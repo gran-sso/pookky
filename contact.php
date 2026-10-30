@@ -45,29 +45,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <!-- Contact info -->
         <div class="col-12 col-md-5">
             <h1 class="page-title mb-4">Get in Touch</h1>
-            <p class="text-secondary mb-4">Have questions about sizes, fabric blends, or bulk orders? Reach out directly. Our support staff is available <?php echo e(SUPPORT_HOURS); ?>.</p>
+            <p class="text-secondary mb-4"><?php echo e(!empty(CONTACT_INTRO_TEXT) ? CONTACT_INTRO_TEXT : 'Have questions about sizes, fabric blends, or bulk orders? Reach out directly. Our support staff is available ' . SUPPORT_HOURS . '.'); ?></p>
             
             <div class="d-flex align-items-start gap-3 mb-4">
                 <div class="fs-4 text-rose"><i class="bi bi-geo-alt-fill"></i></div>
                 <div>
-                    <h6 class="fw-bold text-dark mb-1">Corporate HQ Address</h6>
-                    <span class="small text-muted"><?php echo e(COMPANY_ADDRESS); ?></span>
+                    <h6 class="fw-bold text-dark mb-1">Corporate HQ & Care Address</h6>
+                    <span class="small text-muted d-block"><?php echo nl2br(e(!empty(CONTACT_ADDRESS) ? CONTACT_ADDRESS : COMPANY_ADDRESS)); ?></span>
+                    <?php if (!empty(CONTACT_MAP_URL)): ?>
+                        <a href="<?php echo e(CONTACT_MAP_URL); ?>" target="_blank" rel="noopener noreferrer" class="small text-brand text-decoration-none fw-semibold mt-1 d-inline-block">
+                            <i class="bi bi-geo-fill me-1"></i> View on Google Maps &rarr;
+                        </a>
+                    <?php endif; ?>
                 </div>
             </div>
 
             <div class="d-flex align-items-start gap-3 mb-4">
                 <div class="fs-4 text-rose"><i class="bi bi-telephone-fill"></i></div>
                 <div>
-                    <h6 class="fw-bold text-dark mb-1">Customer Support Phone</h6>
-                    <span class="small text-muted"><?php echo e(SITE_PHONE); ?></span>
+                    <h6 class="fw-bold text-dark mb-1">Customer Helpline</h6>
+                    <span class="small text-muted d-block">
+                        <a href="tel:<?php echo preg_replace('/[^0-9+]/', '', SITE_PHONE); ?>" class="text-decoration-none text-muted fw-semibold">
+                            <?php echo e(SITE_PHONE); ?>
+                        </a>
+                    </span>
+                    <?php if (!empty(SITE_PHONE_SECONDARY)): ?>
+                        <span class="small text-muted d-block mt-1">
+                            <a href="tel:<?php echo preg_replace('/[^0-9+]/', '', SITE_PHONE_SECONDARY); ?>" class="text-decoration-none text-muted">
+                                <?php echo e(SITE_PHONE_SECONDARY); ?> (Alternate)
+                            </a>
+                        </span>
+                    <?php endif; ?>
+                    <small class="text-muted" style="font-size: 11px;">Lines open <?php echo e(SUPPORT_HOURS); ?></small>
                 </div>
             </div>
+
+            <?php if (!empty(SITE_WHATSAPP)): ?>
+            <div class="d-flex align-items-start gap-3 mb-4">
+                <div class="fs-4 text-success"><i class="bi bi-whatsapp"></i></div>
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">WhatsApp Chat Support</h6>
+                    <span class="small text-muted d-block">
+                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', SITE_WHATSAPP); ?>?text=<?php echo urlencode('Hi Pookky, I have a query regarding products/orders.'); ?>" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-success fw-semibold">
+                            <?php echo e(SITE_WHATSAPP); ?> <i class="bi bi-box-arrow-up-right small ms-1"></i>
+                        </a>
+                    </span>
+                    <small class="text-muted" style="font-size: 11px;">Instant size advice & order status support</small>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <div class="d-flex align-items-start gap-3 mb-4">
                 <div class="fs-4 text-rose"><i class="bi bi-envelope-fill"></i></div>
                 <div>
                     <h6 class="fw-bold text-dark mb-1">Email Coordinates</h6>
-                    <span class="small text-muted"><?php echo e(SITE_EMAIL); ?></span>
+                    <span class="small text-muted d-block">
+                        <a href="mailto:<?php echo e(SITE_EMAIL); ?>" class="text-decoration-none text-muted">
+                            <?php echo e(SITE_EMAIL); ?>
+                        </a>
+                    </span>
+                    <?php if (!empty(SITE_SALES_EMAIL)): ?>
+                        <span class="small text-muted d-block mt-1">
+                            <a href="mailto:<?php echo e(SITE_SALES_EMAIL); ?>" class="text-decoration-none text-muted">
+                                <?php echo e(SITE_SALES_EMAIL); ?> (Bulk & Orders)
+                            </a>
+                        </span>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

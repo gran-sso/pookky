@@ -81,11 +81,17 @@ try {
                     <h6 class="text-uppercase fw-bold mb-3 small" style="letter-spacing: 0.5px; opacity: 0.8;">Get in Touch</h6>
                     <div class="contact-item">
                         <i class="bi bi-telephone-fill"></i>
-                        <span><?php echo e(SITE_PHONE); ?></span>
+                        <span><a href="tel:<?php echo preg_replace('/[^0-9+]/', '', SITE_PHONE); ?>" class="text-reset text-decoration-none"><?php echo e(SITE_PHONE); ?></a></span>
                     </div>
+                    <?php if (!empty(SITE_WHATSAPP)): ?>
+                    <div class="contact-item">
+                        <i class="bi bi-whatsapp text-success"></i>
+                        <span><a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', SITE_WHATSAPP); ?>?text=<?php echo urlencode('Hi Pookky, I have an inquiry.'); ?>" target="_blank" rel="noopener noreferrer" class="text-reset text-decoration-none"><?php echo e(SITE_WHATSAPP); ?> (WhatsApp)</a></span>
+                    </div>
+                    <?php endif; ?>
                     <div class="contact-item">
                         <i class="bi bi-envelope-fill"></i>
-                        <span><?php echo e(SITE_EMAIL); ?></span>
+                        <span><a href="mailto:<?php echo e(SITE_EMAIL); ?>" class="text-reset text-decoration-none"><?php echo e(SITE_EMAIL); ?></a></span>
                     </div>
                 </div>
             </div>

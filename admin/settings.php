@@ -28,6 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'site_name',
                 'site_email',
                 'site_phone',
+                'site_phone_secondary',
+                'site_whatsapp',
+                'site_sales_email',
+                'contact_address',
+                'contact_intro_text',
+                'contact_map_url',
                 'currency_symbol',
                 'currency_code',
                 'default_gst_rate',
@@ -129,6 +135,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+$site_phone_val = get_setting('site_phone', '+91 98765 43210');
+$site_phone_secondary_val = get_setting('site_phone_secondary', '');
+$site_whatsapp_val = get_setting('site_whatsapp', '+91 98765 43210');
+$site_email_val = get_setting('site_email', 'info@pookky.com');
+$site_sales_email_val = get_setting('site_sales_email', '');
+$support_hours_val = get_setting('support_hours', 'Monday to Saturday, 9:00 AM to 6:00 PM');
+$contact_address_val = get_setting('contact_address', '');
+$contact_intro_val = get_setting('contact_intro_text', 'Have questions about sizes, fabric blends, or bulk orders? Reach out directly. Our support staff is available Monday to Saturday, 9:00 AM to 6:00 PM.');
+$contact_map_url_val = get_setting('contact_map_url', '');
+
 $company_legal_name_val = get_setting('company_legal_name', 'St. Joseph Garments');
 $company_gstin_val = get_setting('company_gstin', '');
 $company_reg_number_val = get_setting('company_reg_number', '');
@@ -191,50 +207,122 @@ $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
             </div>
         </div>
     </div>
+    <style>
+        /* ==========================================================================
+           STATE-OF-THE-ART SETTINGS TABS NAVIGATION SYSTEM
+           Polished, cohesive, enterprise-grade segmented navigation bar
+           ========================================================================== */
+        .settings-nav-bar {
+            background: #FFFFFF;
+            border: 1px solid #E5E7EB;
+            border-radius: 14px;
+            padding: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.02);
+            display: flex;
+            flex-wrap: nowrap;
+            overflow-x: auto;
+            gap: 4px;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .settings-nav-bar::-webkit-scrollbar {
+            display: none;
+        }
+        .settings-nav-bar .nav-item {
+            flex-shrink: 0;
+        }
+        .settings-nav-bar .settings-tab-btn {
+            border: 1px solid transparent !important;
+            background: transparent !important;
+            color: #4B5563 !important;
+            font-family: var(--font-ui, 'Montserrat', sans-serif);
+            font-size: 13.5px;
+            font-weight: 500;
+            letter-spacing: 0.1px;
+            padding: 8px 16px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+            cursor: pointer;
+            text-decoration: none;
+            box-shadow: none !important;
+        }
+        .settings-nav-bar .settings-tab-btn .tab-icon {
+            font-size: 15px;
+            color: #6B7280;
+            transition: color 0.2s ease, transform 0.2s ease;
+        }
+        .settings-nav-bar .settings-tab-btn:hover {
+            background: #F3F4F6 !important;
+            color: #111827 !important;
+        }
+        .settings-nav-bar .settings-tab-btn:hover .tab-icon {
+            color: #111827;
+            transform: translateY(-1px);
+        }
+        .settings-nav-bar .settings-tab-btn.active {
+            background: var(--brand-charcoal, #2E2E2E) !important;
+            color: #FFFFFF !important;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(46, 46, 46, 0.18) !important;
+        }
+        .settings-nav-bar .settings-tab-btn.active .tab-icon {
+            color: #EAD5C3 !important; /* Signature Pookky warm nude / rose gold accent on the active tab icon */
+        }
+    </style>
+
     <div class="col-12">
         <form action="settings.php" method="POST" id="settingsForm">
             <?php echo csrf_field(); ?>
 
             <!-- Interactive Settings Tabs Navigation -->
-            <ul class="nav nav-pills gap-2 mb-4 bg-white p-2 rounded-4 shadow-sm border flex-nowrap overflow-x-auto" id="settingsTabs" role="tablist" style="scrollbar-width: thin; -webkit-overflow-scrolling: touch;">
+            <ul class="nav settings-nav-bar mb-4" id="settingsTabs" role="tablist">
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link active rounded-pill px-3 py-2 fw-semibold text-nowrap" id="tab-general-btn" data-bs-toggle="pill" data-bs-target="#tab-general" type="button" role="tab" aria-controls="tab-general" aria-selected="true">
-                        <i class="bi bi-shop me-1"></i> General & Tax
+                    <button class="nav-link settings-tab-btn active" id="tab-general-btn" data-bs-toggle="pill" data-bs-target="#tab-general" type="button" role="tab" aria-controls="tab-general" aria-selected="true">
+                        <i class="bi bi-shop tab-icon"></i> General & Tax
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill px-3 py-2 fw-semibold text-primary text-nowrap" id="tab-company-btn" data-bs-toggle="pill" data-bs-target="#tab-company" type="button" role="tab" aria-controls="tab-company" aria-selected="false">
-                        <i class="bi bi-building me-1"></i> Company & Invoicing
+                    <button class="nav-link settings-tab-btn" id="tab-contact-btn" data-bs-toggle="pill" data-bs-target="#tab-contact" type="button" role="tab" aria-controls="tab-contact" aria-selected="false">
+                        <i class="bi bi-headset tab-icon"></i> Contact & Support
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill px-3 py-2 fw-semibold text-warning text-nowrap" id="tab-notice-btn" data-bs-toggle="pill" data-bs-target="#tab-notice" type="button" role="tab" aria-controls="tab-notice" aria-selected="false">
-                        <i class="bi bi-megaphone-fill me-1"></i> Pre-Launch Banner
+                    <button class="nav-link settings-tab-btn" id="tab-company-btn" data-bs-toggle="pill" data-bs-target="#tab-company" type="button" role="tab" aria-controls="tab-company" aria-selected="false">
+                        <i class="bi bi-building tab-icon"></i> Company & Invoicing
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill px-3 py-2 fw-semibold text-nowrap" id="tab-social-btn" data-bs-toggle="pill" data-bs-target="#tab-social" type="button" role="tab" aria-controls="tab-social" aria-selected="false">
-                        <i class="bi bi-share me-1"></i> Social Profiles
+                    <button class="nav-link settings-tab-btn" id="tab-notice-btn" data-bs-toggle="pill" data-bs-target="#tab-notice" type="button" role="tab" aria-controls="tab-notice" aria-selected="false">
+                        <i class="bi bi-megaphone-fill tab-icon"></i> Pre-Launch Banner
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill px-3 py-2 fw-semibold text-nowrap" id="tab-navbar-btn" data-bs-toggle="pill" data-bs-target="#tab-navbar" type="button" role="tab" aria-controls="tab-navbar" aria-selected="false">
-                        <i class="bi bi-menu-button-wide me-1"></i> Navigation Menu
+                    <button class="nav-link settings-tab-btn" id="tab-social-btn" data-bs-toggle="pill" data-bs-target="#tab-social" type="button" role="tab" aria-controls="tab-social" aria-selected="false">
+                        <i class="bi bi-share tab-icon"></i> Social Profiles
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill px-3 py-2 fw-semibold text-nowrap" id="tab-shipping-btn" data-bs-toggle="pill" data-bs-target="#tab-shipping" type="button" role="tab" aria-controls="tab-shipping" aria-selected="false">
-                        <i class="bi bi-truck me-1"></i> Shipping & Logistics
+                    <button class="nav-link settings-tab-btn" id="tab-navbar-btn" data-bs-toggle="pill" data-bs-target="#tab-navbar" type="button" role="tab" aria-controls="tab-navbar" aria-selected="false">
+                        <i class="bi bi-menu-button-wide tab-icon"></i> Navigation Menu
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill px-3 py-2 fw-semibold text-primary text-nowrap" id="tab-razorpay-btn" data-bs-toggle="pill" data-bs-target="#tab-razorpay" type="button" role="tab" aria-controls="tab-razorpay" aria-selected="false">
-                        <i class="bi bi-credit-card-2-front-fill me-1"></i> Razorpay Payments
+                    <button class="nav-link settings-tab-btn" id="tab-shipping-btn" data-bs-toggle="pill" data-bs-target="#tab-shipping" type="button" role="tab" aria-controls="tab-shipping" aria-selected="false">
+                        <i class="bi bi-truck tab-icon"></i> Shipping & Logistics
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
-                    <button class="nav-link rounded-pill px-3 py-2 fw-semibold text-danger text-nowrap" id="tab-google-btn" data-bs-toggle="pill" data-bs-target="#tab-google" type="button" role="tab" aria-controls="tab-google" aria-selected="false">
-                        <i class="bi bi-google me-1"></i> Google 1-Click Login
+                    <button class="nav-link settings-tab-btn" id="tab-razorpay-btn" data-bs-toggle="pill" data-bs-target="#tab-razorpay" type="button" role="tab" aria-controls="tab-razorpay" aria-selected="false">
+                        <i class="bi bi-credit-card-2-front-fill tab-icon"></i> Razorpay Payments
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link settings-tab-btn" id="tab-google-btn" data-bs-toggle="pill" data-bs-target="#tab-google" type="button" role="tab" aria-controls="tab-google" aria-selected="false">
+                        <i class="bi bi-google tab-icon"></i> Google 1-Click Login
                     </button>
                 </li>
             </ul>
@@ -246,26 +334,13 @@ $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
                 <div class="tab-pane fade show active" id="tab-general" role="tabpanel" aria-labelledby="tab-general-btn">
                     <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px;">
                         <h5 class="fw-bold mb-3 text-dark pb-2 border-bottom">
-                            <i class="bi bi-shop me-2 text-primary"></i> General Store Identity & Contact
+                            <i class="bi bi-shop me-2 text-primary"></i> General Store Identity & Commerce Defaults
                         </h5>
                         <div class="row g-3">
                             <div class="col-12 col-md-6">
                                 <div class="form-floating">
                                     <input type="text" class="form-control" id="site_name" name="site_name" value="<?php echo e(SITE_NAME); ?>" required placeholder="Website Platform Name *">
                                     <label for="site_name">Website Platform Name <span class="text-danger">*</span></label>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <div class="form-floating">
-                                    <input type="email" class="form-control" id="site_email" name="site_email" value="<?php echo e(SITE_EMAIL); ?>" required placeholder="Support Email Address *">
-                                    <label for="site_email">Support Email Address <span class="text-danger">*</span></label>
-                                </div>
-                            </div>
-                            
-                            <div class="col-12 col-md-6">
-                                <div class="form-floating">
-                                    <input type="text" class="form-control" id="site_phone" name="site_phone" value="<?php echo e(SITE_PHONE); ?>" required placeholder="Contact / Helpline Phone *">
-                                    <label for="site_phone">Contact / Helpline Phone <span class="text-danger">*</span></label>
                                 </div>
                             </div>
                             <div class="col-12 col-md-3">
@@ -281,34 +356,41 @@ $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
                                 </div>
                             </div>
 
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-6">
                                 <div class="form-floating">
                                     <input type="number" step="0.01" class="form-control" id="default_gst_rate" name="default_gst_rate" value="<?php echo e(DEFAULT_GST_RATE); ?>" required placeholder="Default GST Rate (%)">
                                     <label for="default_gst_rate">Default GST Rate (%)</label>
                                 </div>
                                 <div class="form-text small text-muted">Applied on order checkout & invoices.</div>
                             </div>
-                            <div class="col-12 col-md-4">
+                            <div class="col-12 col-md-6">
                                 <div class="form-floating">
                                     <input type="number" class="form-control" id="return_window_days" name="return_window_days" value="<?php echo e(RETURN_WINDOW_DAYS); ?>" required min="1" max="30" placeholder="Return Window (Days)">
                                     <label for="return_window_days">Return Window (Days)</label>
                                 </div>
+                                <div class="form-text small text-muted">Eligible return and exchange period after order delivery.</div>
                             </div>
-                            <div class="col-12 col-md-4">
-                                <div class="form-floating">
-                                    <input type="text" class="form-control" id="support_hours" name="support_hours" value="<?php echo e(SUPPORT_HOURS); ?>" required placeholder="Customer Support Hours">
-                                    <label for="support_hours">Customer Support Hours</label>
+
+                            <div class="col-12 col-md-6">
+                                <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center h-100 flex-wrap gap-2">
+                                    <div>
+                                        <div class="fw-bold small text-dark"><i class="bi bi-headset me-1 text-success"></i> Customer Care & Contact Info</div>
+                                        <div class="text-muted small">Phone: <strong><?php echo e($site_phone_val); ?></strong> &bull; Email: <strong><?php echo e($site_email_val); ?></strong></div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="document.getElementById('tab-contact-btn').click();">
+                                        Configure Contact Details &rarr;
+                                    </button>
                                 </div>
                             </div>
 
-                            <div class="col-12">
-                                <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div class="col-12 col-md-6">
+                                <div class="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center h-100 flex-wrap gap-2">
                                     <div>
-                                        <div class="fw-bold small text-dark"><i class="bi bi-building me-1 text-primary"></i> Company Legal Entity & Invoicing Configuration</div>
-                                        <div class="text-muted small">Owner company on invoices: <strong><?php echo e($company_legal_name_val); ?></strong> (Parent entity owning <?php echo e(SITE_NAME); ?>).</div>
+                                        <div class="fw-bold small text-dark"><i class="bi bi-building me-1 text-primary"></i> Company Legal Entity & Invoicing</div>
+                                        <div class="text-muted small">Owner company: <strong><?php echo e($company_legal_name_val); ?></strong></div>
                                     </div>
                                     <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3" onclick="document.getElementById('tab-company-btn').click();">
-                                        Configure Company & Invoicing &rarr;
+                                        Configure Company &rarr;
                                     </button>
                                 </div>
                             </div>
@@ -323,7 +405,155 @@ $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
                     </div>
                 </div>
 
-                <!-- 2. COMPANY LEGAL ENTITY & INVOICING TAB -->
+                <!-- 2. CONTACT DETAILS & SUPPORT TAB -->
+                <div class="tab-pane fade" id="tab-contact" role="tabpanel" aria-labelledby="tab-contact-btn">
+                    <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px; border-left: 4px solid #198754 !important;">
+                        <div class="d-flex align-items-center justify-content-between pb-2 border-bottom mb-3 flex-wrap gap-2">
+                            <div>
+                                <h5 class="fw-bold mb-1 text-dark">
+                                    <i class="bi bi-headset text-success me-2"></i> Pookky Customer Care & Contact Coordinates
+                                </h5>
+                                <p class="text-muted small mb-0">Configure customer helpline numbers, support email IDs, WhatsApp chat, operating hours, and showroom/office contact address displayed across the Contact Us page, storefront header, and footer.</p>
+                            </div>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2 rounded-pill">
+                                <i class="bi bi-telephone-inbound me-1"></i> Public Channels
+                            </span>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Helpline Phone -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="tel" class="form-control" id="site_phone" name="site_phone" value="<?php echo e($site_phone_val); ?>" required placeholder="Primary Helpline Phone *">
+                                    <label for="site_phone"><i class="bi bi-telephone-fill text-success me-1"></i> Helpline Phone <span class="text-danger">*</span></label>
+                                </div>
+                                <div class="form-text small text-muted">Primary customer care phone (e.g. +91 98765 43210).</div>
+                            </div>
+
+                            <!-- Secondary Phone -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="tel" class="form-control" id="site_phone_secondary" name="site_phone_secondary" value="<?php echo e($site_phone_secondary_val); ?>" placeholder="Secondary / Toll-Free Phone">
+                                    <label for="site_phone_secondary"><i class="bi bi-telephone me-1"></i> Secondary / Alternate Phone</label>
+                                </div>
+                                <div class="form-text small text-muted">Optional backup calling or toll-free number.</div>
+                            </div>
+
+                            <!-- WhatsApp Number -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="tel" class="form-control" id="site_whatsapp" name="site_whatsapp" value="<?php echo e($site_whatsapp_val); ?>" placeholder="WhatsApp Business Number">
+                                    <label for="site_whatsapp"><i class="bi bi-whatsapp text-success me-1"></i> WhatsApp Support Number</label>
+                                </div>
+                                <div class="form-text small text-muted">Enables click-to-chat links for customer convenience.</div>
+                            </div>
+
+                            <!-- Support Email -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="email" class="form-control" id="site_email" name="site_email" value="<?php echo e($site_email_val); ?>" required placeholder="Support Email Address *">
+                                    <label for="site_email"><i class="bi bi-envelope-fill text-danger me-1"></i> Support Email Address <span class="text-danger">*</span></label>
+                                </div>
+                                <div class="form-text small text-muted">Primary customer care & order inquiries mailbox.</div>
+                            </div>
+
+                            <!-- Sales / Bulk Email -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="email" class="form-control" id="site_sales_email" name="site_sales_email" value="<?php echo e($site_sales_email_val); ?>" placeholder="Sales / Bulk Orders Email">
+                                    <label for="site_sales_email"><i class="bi bi-briefcase-fill text-primary me-1"></i> Bulk / Sales Inquiry Email</label>
+                                </div>
+                                <div class="form-text small text-muted">Optional mailbox for trade, distribution, or bulk queries.</div>
+                            </div>
+
+                            <!-- Support Hours -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="support_hours" name="support_hours" value="<?php echo e($support_hours_val); ?>" required placeholder="Support Hours & Days">
+                                    <label for="support_hours"><i class="bi bi-clock-history text-warning me-1"></i> Support Hours & Days <span class="text-danger">*</span></label>
+                                </div>
+                                <div class="form-text small text-muted">e.g. Monday to Saturday, 9:00 AM to 6:00 PM.</div>
+                            </div>
+
+                            <!-- Customer Care Physical Address -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <textarea class="form-control" id="contact_address" name="contact_address" placeholder="Customer Support / Showroom Address" style="height: 90px;"><?php echo e($contact_address_val); ?></textarea>
+                                    <label for="contact_address"><i class="bi bi-geo-alt-fill text-danger me-1"></i> Customer Care / Office / Showroom Address</label>
+                                </div>
+                                <div class="form-text small text-muted">Leave empty to default to the registered Company Headquarters address (<?php echo e($company_address_val); ?>).</div>
+                            </div>
+
+                            <!-- Contact Page Intro Greeting -->
+                            <div class="col-12 col-md-7">
+                                <div class="form-floating">
+                                    <textarea class="form-control" id="contact_intro_text" name="contact_intro_text" placeholder="Contact Page Intro Greeting" style="height: 90px;"><?php echo e($contact_intro_val); ?></textarea>
+                                    <label for="contact_intro_text"><i class="bi bi-chat-quote-fill text-info me-1"></i> Contact Page Introduction Greeting</label>
+                                </div>
+                                <div class="form-text small text-muted">Introductory paragraph displayed under "Get in Touch" on the public Contact page.</div>
+                            </div>
+
+                            <!-- Google Maps Link -->
+                            <div class="col-12 col-md-5">
+                                <div class="form-floating mb-2">
+                                    <input type="url" class="form-control" id="contact_map_url" name="contact_map_url" value="<?php echo e($contact_map_url_val); ?>" placeholder="Google Maps Location or Directions Link">
+                                    <label for="contact_map_url"><i class="bi bi-map-fill text-success me-1"></i> Google Maps Directions Link</label>
+                                </div>
+                                <div class="form-text small text-muted">Optional: Direct Google Maps URL to your office or showroom location.</div>
+                            </div>
+                        </div>
+
+                        <!-- Live Storefront Contact Card Preview -->
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="fw-bold text-muted small text-uppercase mb-0">
+                                    <i class="bi bi-eye me-1"></i> Live Storefront Contact Card Preview
+                                </h6>
+                                <span class="badge bg-secondary-subtle text-secondary small">Real-time Preview</span>
+                            </div>
+                            <div class="p-4 rounded-3 border" style="background-color: #faf9f6;">
+                                <div class="row g-3">
+                                    <div class="col-12 col-md-4">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <div class="fs-4 text-success"><i class="bi bi-telephone-fill"></i></div>
+                                            <div>
+                                                <div class="fw-bold text-dark small">Calling Helpline</div>
+                                                <div class="small text-muted" id="previewSitePhone"><?php echo e($site_phone_val); ?></div>
+                                                <div class="small text-muted" id="previewSitePhoneSec"><?php echo e($site_phone_secondary_val); ?></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <div class="fs-4 text-success"><i class="bi bi-whatsapp"></i></div>
+                                            <div>
+                                                <div class="fw-bold text-dark small">WhatsApp Support</div>
+                                                <div class="small text-muted" id="previewSiteWhatsapp"><?php echo e($site_whatsapp_val); ?></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <div class="d-flex align-items-start gap-2">
+                                            <div class="fs-4 text-danger"><i class="bi bi-envelope-fill"></i></div>
+                                            <div>
+                                                <div class="fw-bold text-dark small">Email Coordinates</div>
+                                                <div class="small text-muted" id="previewSiteEmail"><?php echo e($site_email_val); ?></div>
+                                                <div class="small text-muted" id="previewSiteSalesEmail"><?php echo e($site_sales_email_val); ?></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 pt-2 border-top">
+                                        <div class="small text-muted">
+                                            <i class="bi bi-clock me-1 text-warning"></i> Operating Hours: <span class="fw-semibold text-dark" id="previewSupportHours"><?php echo e($support_hours_val); ?></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. COMPANY LEGAL ENTITY & INVOICING TAB -->
                 <div class="tab-pane fade" id="tab-company" role="tabpanel" aria-labelledby="tab-company-btn">
                     <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px; border-left: 4px solid #0d6efd !important;">
                         <div class="d-flex align-items-center justify-content-between pb-2 border-bottom mb-3 flex-wrap gap-2">
@@ -864,6 +1094,11 @@ document.addEventListener('DOMContentLoaded', function() {
             targetBtn.setAttribute('aria-selected', 'true');
             targetPane.classList.add('show', 'active');
 
+            // Smoothly center the active tab within the horizontal scrolling bar
+            if (typeof targetBtn.scrollIntoView === 'function') {
+                targetBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+
             // Try bootstrap API if available
             if (window.bootstrap && typeof bootstrap.Tab !== 'undefined') {
                 try {
@@ -928,7 +1163,35 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el) el.addEventListener('input', updateCompanyPreview);
     });
 
-    // 4. Handle deep-linking / URL hashes on page load (e.g., settings.php#company or settings.php#razorpay)
+    // 4. Contact Details Live Preview Reactive Synchronization
+    const inputSitePhone = document.getElementById('site_phone');
+    const inputSitePhoneSec = document.getElementById('site_phone_secondary');
+    const inputSiteWhatsapp = document.getElementById('site_whatsapp');
+    const inputSiteEmail = document.getElementById('site_email');
+    const inputSiteSalesEmail = document.getElementById('site_sales_email');
+    const inputSupportHours = document.getElementById('support_hours');
+
+    function updateContactPreview() {
+        const pPhone = document.getElementById('previewSitePhone');
+        const pPhoneSec = document.getElementById('previewSitePhoneSec');
+        const pWhatsapp = document.getElementById('previewSiteWhatsapp');
+        const pEmail = document.getElementById('previewSiteEmail');
+        const pSalesEmail = document.getElementById('previewSiteSalesEmail');
+        const pHours = document.getElementById('previewSupportHours');
+
+        if (pPhone && inputSitePhone) pPhone.textContent = inputSitePhone.value.trim() || 'Not configured';
+        if (pPhoneSec && inputSitePhoneSec) pPhoneSec.textContent = inputSitePhoneSec.value.trim();
+        if (pWhatsapp && inputSiteWhatsapp) pWhatsapp.textContent = inputSiteWhatsapp.value.trim() || 'Not configured';
+        if (pEmail && inputSiteEmail) pEmail.textContent = inputSiteEmail.value.trim() || 'Not configured';
+        if (pSalesEmail && inputSiteSalesEmail) pSalesEmail.textContent = inputSiteSalesEmail.value.trim();
+        if (pHours && inputSupportHours) pHours.textContent = inputSupportHours.value.trim() || 'Not configured';
+    }
+
+    [inputSitePhone, inputSitePhoneSec, inputSiteWhatsapp, inputSiteEmail, inputSiteSalesEmail, inputSupportHours].forEach(el => {
+        if (el) el.addEventListener('input', updateContactPreview);
+    });
+
+    // 5. Handle deep-linking / URL hashes on page load (e.g., settings.php#company, settings.php#contact, settings.php#razorpay)
     const currentHash = window.location.hash;
     if (currentHash) {
         const cleaned = currentHash.replace('#sec-', '').replace('#tab-', '').replace('#', '');

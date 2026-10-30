@@ -34,6 +34,12 @@ if (!defined('SITE_NAME')) define('SITE_NAME', get_setting('site_name', 'Pookky'
 if (!defined('APP_NAME')) define('APP_NAME', SITE_NAME);
 if (!defined('SITE_EMAIL')) define('SITE_EMAIL', get_setting('site_email', 'info@pookky.com'));
 if (!defined('SITE_PHONE')) define('SITE_PHONE', get_setting('site_phone', '+91 98765 43210'));
+if (!defined('SITE_PHONE_SECONDARY')) define('SITE_PHONE_SECONDARY', get_setting('site_phone_secondary', ''));
+if (!defined('SITE_WHATSAPP')) define('SITE_WHATSAPP', get_setting('site_whatsapp', '+91 98765 43210'));
+if (!defined('SITE_SALES_EMAIL')) define('SITE_SALES_EMAIL', get_setting('site_sales_email', ''));
+if (!defined('CONTACT_ADDRESS')) define('CONTACT_ADDRESS', get_setting('contact_address', ''));
+if (!defined('CONTACT_INTRO_TEXT')) define('CONTACT_INTRO_TEXT', get_setting('contact_intro_text', 'Have questions about sizes, fabric blends, or bulk orders? Reach out directly. Our support staff is available Monday to Saturday, 9:00 AM to 6:00 PM.'));
+if (!defined('CONTACT_MAP_URL')) define('CONTACT_MAP_URL', get_setting('contact_map_url', ''));
 if (!defined('SITE_LOGO')) define('SITE_LOGO', BASE_URL . 'assets/images/logo.png');
 if (!defined('SITE_LOGO_WHITE')) define('SITE_LOGO_WHITE', BASE_URL . 'assets/images/pookky-logo-white.png');
 
