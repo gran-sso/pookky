@@ -704,6 +704,8 @@ function initComboBuilder() {
             }
             if (hiddenInput) hiddenInput.value = '';
             sel.variantId = null;
+            sel.priceDelta = 0;
+            updateComboTotalPrice();
             checkAllComponentsSelected();
             return;
         }
@@ -717,20 +719,25 @@ function initComboBuilder() {
             sel.sizeCode = matched.size_code;
             sel.colorName = matched.color_name;
             sel.stock = parseInt(matched.stock);
+            sel.priceDelta = parseFloat(matched.price_delta) || 0;
+            sel.effectivePrice = parseFloat(matched.effective_price) || 0;
 
             if (hiddenInput) hiddenInput.value = matched.variant_id;
 
             if (statusEl) {
-                statusEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> In Stock (${matched.stock} available)</span>`;
+                const surchargeNote = sel.priceDelta > 0 ? ` &bull; <span class="text-danger fw-semibold">+₹${sel.priceDelta.toFixed(2)} size adjustment</span>` : '';
+                statusEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> In Stock (${matched.stock} available)${surchargeNote}</span>`;
             }
 
             if (summaryTextEl) {
-                summaryTextEl.innerHTML = `<span class="badge bg-success-subtle text-success border me-1">${matched.size_code}</span> <span class="badge bg-light text-dark border">${matched.color_name}</span>`;
+                const deltaBadge = sel.priceDelta > 0 ? ` <span class="badge bg-danger-subtle text-danger border">+₹${sel.priceDelta.toFixed(2)}</span>` : '';
+                summaryTextEl.innerHTML = `<span class="badge bg-success-subtle text-success border me-1">${matched.size_code}${deltaBadge}</span> <span class="badge bg-light text-dark border">${matched.color_name}</span>`;
                 summaryTextEl.className = 'item-choice';
             }
         } else {
             sel.variantId = null;
             sel.stock = 0;
+            sel.priceDelta = 0;
             if (hiddenInput) hiddenInput.value = '';
 
             if (statusEl) {
@@ -743,7 +750,58 @@ function initComboBuilder() {
             }
         }
 
+        updateComboTotalPrice();
         checkAllComponentsSelected();
+    }
+
+    // Live Bundle Price Recalculation (Model D Hybrid)
+    function updateComboTotalPrice() {
+        let totalDelta = 0;
+        for (const comp of comboComponentsData) {
+            const sel = selections[comp.id];
+            if (sel && sel.priceDelta) {
+                totalDelta += sel.priceDelta;
+            }
+        }
+
+        const masterReg = (window.productMasterPricing && window.productMasterPricing.regular_price) ? parseFloat(window.productMasterPricing.regular_price) : 0;
+        const masterOff = (window.productMasterPricing && window.productMasterPricing.offer_price) ? parseFloat(window.productMasterPricing.offer_price) : null;
+
+        const baseSelling = masterOff !== null ? masterOff : masterReg;
+        const currentSelling = baseSelling + totalDelta;
+        const currentReg = masterReg + totalDelta;
+
+        const priceDisplay = document.getElementById('product-price-display');
+        if (priceDisplay) {
+            priceDisplay.textContent = '₹ ' + currentSelling.toFixed(2);
+        }
+
+        const regPriceSpan = document.getElementById('product-regular-price-span');
+        if (regPriceSpan) {
+            if (masterOff !== null && currentReg > currentSelling && currentReg > 0) {
+                regPriceSpan.textContent = '₹ ' + currentReg.toFixed(2);
+                regPriceSpan.classList.remove('d-none');
+            } else {
+                regPriceSpan.classList.add('d-none');
+            }
+        }
+
+        const saveBadge = document.getElementById('product-save-badge');
+        if (saveBadge) {
+            if (masterOff !== null && currentReg > currentSelling && currentReg > 0) {
+                const diff = currentReg - currentSelling;
+                const pct = Math.round((diff / currentReg) * 100);
+                saveBadge.textContent = `Save ₹ ${diff.toFixed(2)} (${pct}% OFF)`;
+                saveBadge.classList.remove('d-none');
+            } else {
+                saveBadge.classList.add('d-none');
+            }
+        }
+
+        const mobileBarPrice = document.getElementById('mobile-bar-price');
+        if (mobileBarPrice) {
+            mobileBarPrice.textContent = '₹ ' + currentSelling.toFixed(2);
+        }
     }
 
     // Color Swatch Clicks for Combo

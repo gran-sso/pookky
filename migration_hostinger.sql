@@ -88,6 +88,21 @@ CREATE TABLE IF NOT EXISTS `combo_components` (
   CONSTRAINT `fk_cc_product` FOREIGN KEY (`allowed_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 7. Combo Size Surcharges (Model D Hybrid Surcharge Configuration)
+CREATE TABLE IF NOT EXISTS `combo_size_surcharges` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `combo_product_id` INT NOT NULL,
+  `component_id` INT NOT NULL DEFAULT 0,
+  `size_id` INT NOT NULL,
+  `surcharge_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uniq_combo_comp_size` (`combo_product_id`, `component_id`, `size_id`),
+  KEY `idx_combo_prod` (`combo_product_id`),
+  KEY `idx_size_id` (`size_id`),
+  CONSTRAINT `fk_css_combo` FOREIGN KEY (`combo_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_css_size` FOREIGN KEY (`size_id`) REFERENCES `sizes` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- ------------------------------------------------------------------------------
 -- STEP 2: SAFELY ADD NEW COLUMNS TO EXISTING TABLES (IF NOT ALREADY PRESENT)
@@ -138,8 +153,9 @@ CALL AddColumnIfNotExists('cart', 'combo_config', 'TEXT DEFAULT NULL');
 CALL AddColumnIfNotExists('order_items', 'combo_product_id', 'INT DEFAULT NULL');
 CALL AddColumnIfNotExists('order_items', 'combo_config', 'TEXT DEFAULT NULL');
 
--- E. Update `products` table for Combo Sets
+-- E. Update `products` table for Combo Sets & Pricing Strategy
 CALL AddColumnIfNotExists('products', 'product_type', 'ENUM("single", "combo") NOT NULL DEFAULT "single"');
+CALL AddColumnIfNotExists('products', 'combo_pricing_mode', 'ENUM("inherit", "custom", "flat") DEFAULT "inherit"');
 
 -- F. Update `orders` table for Online Gateway Transaction Reference
 CALL AddColumnIfNotExists('orders', 'transaction_id', 'VARCHAR(100) DEFAULT NULL');

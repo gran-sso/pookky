@@ -258,6 +258,9 @@ if ($view_id):
                                                             <strong><?php echo e($p_comp['product_name']); ?>:</strong> 
                                                             Size: <span class="badge bg-secondary-subtle text-dark border"><?php echo e($p_comp['size_code']); ?></span> | 
                                                             Color: <span class="badge bg-secondary-subtle text-dark border"><?php echo e($p_comp['color_name']); ?></span>
+                                                            <?php if (!empty($p_comp['price_delta']) && (float)$p_comp['price_delta'] > 0): ?>
+                                                                <span class="badge bg-danger-subtle text-danger border ms-1" style="font-size: 10px;">+₹<?php echo number_format((float)$p_comp['price_delta'], 2); ?> size adj.</span>
+                                                            <?php endif; ?>
                                                         </li>
                                                     <?php endforeach; ?>
                                                 </ul>

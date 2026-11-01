@@ -68,8 +68,17 @@ try {
     // Check if combo product
     $is_combo = ($product['product_type'] ?? 'single') === 'combo';
     $combo_components = [];
+    $combo_pricing_mode = $product['combo_pricing_mode'] ?? 'inherit';
 
     if ($is_combo) {
+        // If custom mode, fetch custom size surcharges for this combo
+        $combo_custom_surcharges = [];
+        if ($combo_pricing_mode === 'custom') {
+            $sc_stmt = $pdo->prepare("SELECT size_id, surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
+            $sc_stmt->execute([$product_id]);
+            $combo_custom_surcharges = $sc_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        }
+
         $comp_stmt = $pdo->prepare("
             SELECT cc.*, 
                    p.name as specific_product_name, p.slug as specific_product_slug,
@@ -84,28 +93,32 @@ try {
         $components_raw = $comp_stmt->fetchAll();
 
         foreach ($components_raw as $comp) {
-            // Determine eligible products
+            // Determine eligible products with their regular & offer pricing
             if (!empty($comp['allowed_product_id'])) {
-                $p_sql = "SELECT id, name, slug FROM products WHERE id = ? AND status = 1";
+                $p_sql = "SELECT id, name, slug, regular_price, offer_price FROM products WHERE id = ? AND status = 1";
                 $p_stmt = $pdo->prepare($p_sql);
                 $p_stmt->execute([$comp['allowed_product_id']]);
                 $comp_products = $p_stmt->fetchAll();
             } elseif (!empty($comp['allowed_category_id'])) {
-                $p_sql = "SELECT id, name, slug FROM products WHERE category_id = ? AND product_type = 'single' AND status = 1";
+                $p_sql = "SELECT id, name, slug, regular_price, offer_price FROM products WHERE category_id = ? AND product_type = 'single' AND status = 1";
                 $p_stmt = $pdo->prepare($p_sql);
                 $p_stmt->execute([$comp['allowed_category_id']]);
                 $comp_products = $p_stmt->fetchAll();
             } else {
-                $p_sql = "SELECT id, name, slug FROM products WHERE product_type = 'single' AND status = 1 LIMIT 20";
+                $p_sql = "SELECT id, name, slug, regular_price, offer_price FROM products WHERE product_type = 'single' AND status = 1 LIMIT 20";
                 $p_stmt = $pdo->query($p_sql);
                 $comp_products = $p_stmt->fetchAll();
             }
 
-            // For each eligible product, load variants
+            // For each eligible product, load variants with dual-tier pricing
             $loaded_products = [];
             foreach ($comp_products as $cp) {
+                $base_sub_selling = (!empty($cp['offer_price']) && (float)$cp['offer_price'] > 0) 
+                    ? (float)$cp['offer_price'] 
+                    : (float)$cp['regular_price'];
+
                 $v_stmt = $pdo->prepare("
-                    SELECT pv.id as variant_id, pv.sku, pv.stock, pv.price,
+                    SELECT pv.id as variant_id, pv.sku, pv.stock, pv.price, pv.regular_price, pv.offer_price,
                            s.id as size_id, s.size_code, s.size_name,
                            cl.id as color_id, cl.color_name, cl.color_code
                     FROM product_variants pv
@@ -118,6 +131,29 @@ try {
                 $var_rows = $v_stmt->fetchAll();
 
                 if (!empty($var_rows)) {
+                    // Compute Model D size delta for each variant
+                    foreach ($var_rows as &$v) {
+                        $v_off = ($v['offer_price'] !== null && (float)$v['offer_price'] > 0) ? (float)$v['offer_price'] : null;
+                        $v_reg = ($v['regular_price'] !== null && (float)$v['regular_price'] > 0) ? (float)$v['regular_price'] : (float)$cp['regular_price'];
+                        $v_legacy = ($v['price'] !== null && (float)$v['price'] > 0 && !$v['regular_price']) ? (float)$v['price'] : null;
+                        $v_selling = $v_off !== null ? $v_off : ($v_legacy !== null ? $v_legacy : $v_reg);
+
+                        $delta = 0.00;
+                        if ($combo_pricing_mode === 'flat') {
+                            $delta = 0.00;
+                        } elseif ($combo_pricing_mode === 'custom') {
+                            $delta = (float)($combo_custom_surcharges[$v['size_id']] ?? 0.00);
+                        } else {
+                            // 'inherit' mode: calculate difference from subproduct base price
+                            $delta = max(0.00, round($v_selling - $base_sub_selling, 2));
+                        }
+
+                        $v['effective_price'] = (float)$v_selling;
+                        $v['price_delta'] = (float)$delta;
+                        $v['price_delta_formatted'] = $delta > 0 ? ('+₹' . number_format($delta, 2)) : '';
+                    }
+                    unset($v);
+
                     $cp['variants'] = $var_rows;
                     $loaded_products[] = $cp;
                 }
@@ -379,7 +415,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                                             $u_sizes = [];
                                             foreach ($c_prod['variants'] as $v) {
                                                 $u_colors[$v['color_id']] = ['id' => $v['color_id'], 'name' => $v['color_name'], 'code' => $v['color_code']];
-                                                $u_sizes[$v['size_id']] = ['id' => $v['size_id'], 'code' => $v['size_code'], 'name' => $v['size_name']];
+                                                if (!isset($u_sizes[$v['size_id']]) || ((float)($v['price_delta'] ?? 0) > (float)($u_sizes[$v['size_id']]['price_delta'] ?? 0))) {
+                                                    $u_sizes[$v['size_id']] = [
+                                                        'id' => $v['size_id'],
+                                                        'code' => $v['size_code'],
+                                                        'name' => $v['size_name'],
+                                                        'price_delta' => (float)($v['price_delta'] ?? 0)
+                                                    ];
+                                                }
                                             }
                                             sort_sizes($u_sizes);
                                         ?>
@@ -406,12 +449,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                                             </div>
                                             <div class="d-flex align-items-center gap-2 flex-wrap">
                                                 <?php foreach ($u_sizes as $sz): ?>
-                                                    <span class="swatch-size combo-swatch-size" 
+                                                    <?php $sz_delta = (float)($sz['price_delta'] ?? 0); ?>
+                                                    <span class="swatch-size combo-swatch-size d-inline-flex align-items-center gap-1" 
                                                           data-component-id="<?php echo $comp['id']; ?>"
                                                           data-product-id="<?php echo $c_prod['id']; ?>"
                                                           data-size-id="<?php echo $sz['id']; ?>"
-                                                          data-size-code="<?php echo e($sz['code']); ?>">
-                                                        <?php echo e($sz['code']); ?>
+                                                          data-size-code="<?php echo e($sz['code']); ?>"
+                                                          data-surcharge="<?php echo $sz_delta; ?>">
+                                                        <span><?php echo e($sz['code']); ?></span>
+                                                        <?php if ($sz_delta > 0): ?>
+                                                            <span class="badge bg-danger-subtle text-danger border p-0 px-1" style="font-size: 9px; line-height: 1.2;">+₹<?php echo (int)round($sz_delta); ?></span>
+                                                        <?php endif; ?>
                                                     </span>
                                                 <?php endforeach; ?>
                                             </div>
@@ -869,6 +917,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
 <!-- Inject variant details for JS swatches & combo logic -->
 <script>
     window.isComboProduct = <?php echo $is_combo ? 'true' : 'false'; ?>;
+    window.comboPricingMode = "<?php echo e($combo_pricing_mode); ?>";
     window.defaultProductPrice = "<?php echo format_price($product['offer_price'] ?? $product['regular_price']); ?>";
     window.productMasterPricing = {
         regular_price: <?php echo (float)$product['regular_price']; ?>,

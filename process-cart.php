@@ -138,6 +138,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 json_response('error', 'Combo product not found or unavailable.');
             }
 
+            // Check combo pricing strategy
+            $combo_pricing_mode = $combo_product['combo_pricing_mode'] ?? 'inherit';
+            $combo_custom_surcharges = [];
+            if ($combo_pricing_mode === 'custom') {
+                $sc_stmt = $pdo->prepare("SELECT size_id, surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
+                $sc_stmt->execute([$combo_product_id]);
+                $combo_custom_surcharges = $sc_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+            }
+
             // Fetch required combo components
             $req_stmt = $pdo->prepare("SELECT * FROM combo_components WHERE combo_product_id = ? ORDER BY sort_order ASC, id ASC");
             $req_stmt->execute([$combo_product_id]);
@@ -167,10 +176,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $variant_id = $submitted_map[$comp_id];
 
-                // Verify variant details and stock
+                // Verify variant details, stock, and pricing
                 $v_stmt = $pdo->prepare("
-                    SELECT pv.id as variant_id, pv.sku, pv.stock, pv.product_id,
-                           p.name as product_name,
+                    SELECT pv.id as variant_id, pv.sku, pv.stock, pv.product_id, pv.regular_price, pv.offer_price, pv.price, pv.size_id,
+                           p.name as product_name, p.regular_price as product_regular_price, p.offer_price as product_offer_price,
                            s.size_code, s.size_name,
                            cl.color_name, cl.color_code
                     FROM product_variants pv
@@ -196,6 +205,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $min_available_stock = $stock;
                 }
 
+                // Calculate verified server-side price delta for this size
+                $v_off = ($var_info['offer_price'] !== null && (float)$var_info['offer_price'] > 0) ? (float)$var_info['offer_price'] : null;
+                $v_reg = ($var_info['regular_price'] !== null && (float)$var_info['regular_price'] > 0) ? (float)$var_info['regular_price'] : (float)$var_info['product_regular_price'];
+                $v_legacy = ($var_info['price'] !== null && (float)$var_info['price'] > 0 && !$var_info['regular_price']) ? (float)$var_info['price'] : null;
+                $v_selling = $v_off !== null ? $v_off : ($v_legacy !== null ? $v_legacy : $v_reg);
+                $sub_base_selling = (!empty($var_info['product_offer_price']) && (float)$var_info['product_offer_price'] > 0) ? (float)$var_info['product_offer_price'] : (float)$var_info['product_regular_price'];
+
+                $delta = 0.00;
+                if ($combo_pricing_mode === 'flat') {
+                    $delta = 0.00;
+                } elseif ($combo_pricing_mode === 'custom') {
+                    $delta = (float)($combo_custom_surcharges[$var_info['size_id']] ?? 0.00);
+                } else {
+                    // 'inherit' mode
+                    $delta = max(0.00, round($v_selling - $sub_base_selling, 2));
+                }
+
                 $combo_config[] = [
                     'component_id' => $comp_id,
                     'component_title' => $req_comp['component_title'],
@@ -203,9 +229,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'product_name' => $var_info['product_name'],
                     'variant_id' => $var_info['variant_id'],
                     'sku' => $var_info['sku'],
+                    'size_id' => $var_info['size_id'],
                     'size_code' => $var_info['size_code'],
                     'color_name' => $var_info['color_name'],
-                    'color_code' => $var_info['color_code']
+                    'color_code' => $var_info['color_code'],
+                    'price_delta' => (float)$delta
                 ];
             }
 

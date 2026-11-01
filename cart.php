@@ -75,7 +75,15 @@ try {
                 }
             }
             $c_item['computed_stock'] = $min_combo_stock;
-            $c_item['unit_price'] = $c_item['offer_price'] ? (float)$c_item['offer_price'] : (float)$c_item['regular_price'];
+            $base_combo = $c_item['offer_price'] ? (float)$c_item['offer_price'] : (float)$c_item['regular_price'];
+            $combo_surcharges = 0.00;
+            if (is_array($c_item['parsed_combo_config'])) {
+                foreach ($c_item['parsed_combo_config'] as $cfg) {
+                    $combo_surcharges += (float)($cfg['price_delta'] ?? 0.00);
+                }
+            }
+            $c_item['combo_surcharges'] = $combo_surcharges;
+            $c_item['unit_price'] = $base_combo + $combo_surcharges;
         } else {
             $c_item['parsed_combo_config'] = null;
             $c_item['computed_stock'] = (int)($c_item['variant_stock'] ?? 0);
@@ -203,9 +211,17 @@ require_once __DIR__ . '/includes/header.php';
                                                                 <strong><?php echo e($p_comp['product_name']); ?>:</strong> 
                                                                 Size: <span class="badge bg-secondary-subtle text-dark border"><?php echo e($p_comp['size_code']); ?></span> | 
                                                                 Color: <span class="badge bg-secondary-subtle text-dark border"><?php echo e($p_comp['color_name']); ?></span>
+                                                                <?php if (!empty($p_comp['price_delta']) && (float)$p_comp['price_delta'] > 0): ?>
+                                                                    <span class="badge bg-danger-subtle text-danger border ms-1" style="font-size: 10px;">+₹<?php echo number_format((float)$p_comp['price_delta'], 2); ?> size adj.</span>
+                                                                <?php endif; ?>
                                                             </li>
                                                         <?php endforeach; ?>
                                                     </ul>
+                                                    <?php if (!empty($item['combo_surcharges']) && (float)$item['combo_surcharges'] > 0): ?>
+                                                        <div class="text-muted small mt-1" style="font-size: 11px;">
+                                                            Base Set: <?php echo format_price($item['offer_price'] ?: $item['regular_price']); ?> + Size Adjustments: <?php echo format_price($item['combo_surcharges']); ?>
+                                                        </div>
+                                                    <?php endif; ?>
                                                 </div>
                                             <?php else: ?>
                                                 <small class="text-muted d-block">Size: <?php echo e($item['size_code']); ?> | Color: <?php echo e($item['color_name']); ?></small>

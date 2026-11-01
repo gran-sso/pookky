@@ -173,7 +173,12 @@ try {
                                         <em>Curated Combo Set:</em>
                                         <ul class="mb-0 ps-3">
                                             <?php foreach ($parsed_cfg as $p_comp): ?>
-                                                <li><?php echo e($p_comp['product_name']); ?> (Size: <?php echo e($p_comp['size_code']); ?>, Color: <?php echo e($p_comp['color_name']); ?>)</li>
+                                                <li>
+                                                    <?php echo e($p_comp['product_name']); ?> (Size: <?php echo e($p_comp['size_code']); ?>, Color: <?php echo e($p_comp['color_name']); ?>)
+                                                    <?php if (!empty($p_comp['price_delta']) && (float)$p_comp['price_delta'] > 0): ?>
+                                                        <span class="text-danger small">(+₹<?php echo number_format((float)$p_comp['price_delta'], 2); ?> size adj.)</span>
+                                                    <?php endif; ?>
+                                                </li>
                                             <?php endforeach; ?>
                                         </ul>
                                     </div>

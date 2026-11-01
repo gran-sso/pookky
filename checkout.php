@@ -73,7 +73,15 @@ try {
     foreach ($cart_items as &$c_item) {
         if (!empty($c_item['combo_product_id']) && !empty($c_item['combo_config'])) {
             $c_item['parsed_combo_config'] = json_decode($c_item['combo_config'], true) ?? [];
-            $c_item['unit_price'] = $c_item['offer_price'] ? (float)$c_item['offer_price'] : (float)$c_item['regular_price'];
+            $base_combo = $c_item['offer_price'] ? (float)$c_item['offer_price'] : (float)$c_item['regular_price'];
+            $combo_surcharges = 0.00;
+            if (is_array($c_item['parsed_combo_config'])) {
+                foreach ($c_item['parsed_combo_config'] as $cfg) {
+                    $combo_surcharges += (float)($cfg['price_delta'] ?? 0.00);
+                }
+            }
+            $c_item['combo_surcharges'] = $combo_surcharges;
+            $c_item['unit_price'] = $base_combo + $combo_surcharges;
         } else {
             $c_item['parsed_combo_config'] = null;
             
@@ -1404,6 +1412,9 @@ $preselected_state = $_POST['guest_state'] ?? 'Kerala';
                                 <div class="text-muted mt-1" style="font-size: 12px;">
                                     <?php if ($is_combo): ?>
                                         <span class="badge bg-purple-subtle text-purple border p-1" style="font-size: 10px;">Curated Combo Set</span>
+                                        <?php if (!empty($item['combo_surcharges']) && (float)$item['combo_surcharges'] > 0): ?>
+                                            <span class="badge bg-danger-subtle text-danger border p-1" style="font-size: 10px;">+<?php echo format_price($item['combo_surcharges']); ?> size adj.</span>
+                                        <?php endif; ?>
                                     <?php else: ?>
                                         <?php echo e($item['size_code']); ?> / <?php echo e($item['color_name']); ?>
                                     <?php endif; ?>

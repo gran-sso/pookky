@@ -82,6 +82,54 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_component'])) 
     }
 }
 
+// Handle Save Size Pricing Strategy (Model D Hybrid)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pricing_mode'])) {
+    $csrf_token = $_POST['csrf_token'] ?? '';
+    if (!verify_csrf_token($csrf_token)) {
+        $error = 'Security check failed.';
+    } else {
+        $mode = $_POST['combo_pricing_mode'] ?? 'inherit';
+        if (!in_array($mode, ['inherit', 'custom', 'flat'])) {
+            $mode = 'inherit';
+        }
+
+        try {
+            $pdo->beginTransaction();
+
+            $up = $pdo->prepare("UPDATE products SET combo_pricing_mode = ? WHERE id = ?");
+            $up->execute([$mode, $combo_id]);
+
+            // Save custom surcharges if in custom mode
+            $del = $pdo->prepare("DELETE FROM combo_size_surcharges WHERE combo_product_id = ?");
+            $del->execute([$combo_id]);
+
+            if ($mode === 'custom' && isset($_POST['surcharges']) && is_array($_POST['surcharges'])) {
+                $ins_sc = $pdo->prepare("
+                    INSERT INTO combo_size_surcharges (combo_product_id, component_id, size_id, surcharge_amount)
+                    VALUES (?, 0, ?, ?)
+                ");
+                foreach ($_POST['surcharges'] as $s_id => $amt) {
+                    $amt_val = (float)$amt;
+                    if ($amt_val > 0) {
+                        $ins_sc->execute([$combo_id, (int)$s_id, $amt_val]);
+                    }
+                }
+            }
+
+            $pdo->commit();
+            log_admin_action($current_admin_id, "Updated combo size pricing strategy to '{$mode}' for combo ID: {$combo_id}");
+            set_flash_message('success', 'Size pricing strategy saved successfully!');
+            header('Location: combo_components.php?combo_id=' . $combo_id);
+            exit;
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            $error = 'Failed to save pricing strategy: ' . $e->getMessage();
+        }
+    }
+}
+
 // Fetch existing components
 $comp_stmt = $pdo->prepare("
     SELECT cc.*, 
@@ -95,6 +143,23 @@ $comp_stmt = $pdo->prepare("
 ");
 $comp_stmt->execute([$combo_id]);
 $components = $comp_stmt->fetchAll();
+
+$combo_pricing_mode = $combo_product['combo_pricing_mode'] ?? 'inherit';
+
+// Fetch existing custom size surcharges for this combo
+$surcharges_stmt = $pdo->prepare("SELECT size_id, surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
+$surcharges_stmt->execute([$combo_id]);
+$existing_surcharges = $surcharges_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+
+// Fetch all sizes grouped by category_type for custom surcharge configuration
+$sizes_stmt = $pdo->query("SELECT * FROM sizes ORDER BY category_type ASC, id ASC");
+$all_sizes = $sizes_stmt->fetchAll();
+sort_sizes($all_sizes, true);
+$sizes_by_cat = [];
+foreach ($all_sizes as $sz) {
+    $cat = !empty($sz['category_type']) ? $sz['category_type'] : 'General';
+    $sizes_by_cat[$cat][] = $sz;
+}
 ?>
 
 <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px;">
@@ -123,6 +188,142 @@ $components = $comp_stmt->fetchAll();
 <?php if (!empty($error)): ?>
     <div class="alert alert-danger"><?php echo e($error); ?></div>
 <?php endif; ?>
+
+<!-- Bundle Size Variant Pricing Strategy Card (Model D Hybrid) -->
+<div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px;">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+        <div>
+            <h5 class="fw-bold mb-1 text-dark">
+                <i class="bi bi-tag-fill me-2 text-rose"></i> Bundle Size Variant Pricing Strategy
+            </h5>
+            <p class="text-muted small mb-0">Control how prices adapt when customers select different sizes (e.g. plus sizes like 44B) in this bundle.</p>
+        </div>
+        <span class="badge <?php echo $combo_pricing_mode === 'inherit' ? 'bg-success-subtle text-success' : ($combo_pricing_mode === 'custom' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary'); ?> border px-3 py-2">
+            Active: <strong><?php echo ucfirst($combo_pricing_mode); ?> Mode</strong>
+        </span>
+    </div>
+
+    <form action="combo_components.php?combo_id=<?php echo $combo_id; ?>" method="POST" id="pricingModeForm">
+        <?php echo csrf_field(); ?>
+
+        <div class="row g-3 mb-4">
+            <!-- Mode 1: Inherit -->
+            <div class="col-12 col-md-4">
+                <label class="card h-100 p-3 border rounded-3 cursor-pointer pricing-mode-card <?php echo $combo_pricing_mode === 'inherit' ? 'border-success bg-success-subtle bg-opacity-10' : ''; ?>" style="cursor: pointer;">
+                    <div class="d-flex align-items-start gap-2">
+                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="inherit" <?php echo $combo_pricing_mode === 'inherit' ? 'checked' : ''; ?> onchange="toggleCustomSurcharges(this.value)">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold text-dark">1. Inherit from Single Products</span>
+                                <span class="badge bg-success-subtle text-success small" style="font-size: 10px;">Recommended</span>
+                            </div>
+                            <p class="small text-muted mb-0 mt-1">
+                                Automatically pulls price differences from single product variant matrices. If 44B costs +₹50 on the single bra, the bundle automatically adds +₹50. Zero manual setup.
+                            </p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Mode 2: Custom -->
+            <div class="col-12 col-md-4">
+                <label class="card h-100 p-3 border rounded-3 cursor-pointer pricing-mode-card <?php echo $combo_pricing_mode === 'custom' ? 'border-primary bg-primary-subtle bg-opacity-10' : ''; ?>" style="cursor: pointer;">
+                    <div class="d-flex align-items-start gap-2">
+                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="custom" <?php echo $combo_pricing_mode === 'custom' ? 'checked' : ''; ?> onchange="toggleCustomSurcharges(this.value)">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold text-dark">2. Custom Bundle Surcharges</span>
+                                <span class="badge bg-primary-subtle text-primary small" style="font-size: 10px;">Overrides</span>
+                            </div>
+                            <p class="small text-muted mb-0 mt-1">
+                                Define exact extra charges for specific sizes inside this bundle only (e.g. charge a discounted +₹30 for 44B instead of the standard +₹50).
+                            </p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Mode 3: Flat -->
+            <div class="col-12 col-md-4">
+                <label class="card h-100 p-3 border rounded-3 cursor-pointer pricing-mode-card <?php echo $combo_pricing_mode === 'flat' ? 'border-secondary bg-light' : ''; ?>" style="cursor: pointer;">
+                    <div class="d-flex align-items-start gap-2">
+                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="flat" <?php echo $combo_pricing_mode === 'flat' ? 'checked' : ''; ?> onchange="toggleCustomSurcharges(this.value)">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold text-dark">3. Flat Bundle Price</span>
+                                <span class="badge bg-secondary-subtle text-secondary small" style="font-size: 10px;">Promotional</span>
+                            </div>
+                            <p class="small text-muted mb-0 mt-1">
+                                Any size, same price. All size-based extra charges are waived. Ideal for promotional "any size for ₹X" sales campaigns.
+                            </p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <!-- Custom Surcharge Table (Visible only in 'custom' mode) -->
+        <div id="customSurchargesContainer" class="<?php echo $combo_pricing_mode === 'custom' ? '' : 'd-none'; ?> p-3 border rounded-3 bg-light mb-4">
+            <h6 class="fw-bold text-dark mb-1">
+                <i class="bi bi-sliders2 me-1 text-primary"></i> Custom Size Surcharge Matrix (₹ Extra for this Bundle)
+            </h6>
+            <p class="small text-muted mb-3">Leave blank or 0.00 for standard sizes with no extra charge. Enter extra amount for plus/extended sizes.</p>
+
+            <ul class="nav nav-pills mb-3" id="sizeCategoryTabs" role="tablist">
+                <?php $tab_idx = 0; foreach ($sizes_by_cat as $cat_name => $cat_sizes): $tab_idx++; ?>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link btn-sm <?php echo $tab_idx === 1 ? 'active' : ''; ?>" id="tab-btn-<?php echo e(slugify($cat_name)); ?>" data-bs-toggle="pill" data-bs-target="#tab-pane-<?php echo e(slugify($cat_name)); ?>" type="button" role="tab">
+                            <?php echo e($cat_name); ?> (<?php echo count($cat_sizes); ?>)
+                        </button>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <div class="tab-content">
+                <?php $tab_idx = 0; foreach ($sizes_by_cat as $cat_name => $cat_sizes): $tab_idx++; ?>
+                    <div class="tab-pane fade <?php echo $tab_idx === 1 ? 'show active' : ''; ?>" id="tab-pane-<?php echo e(slugify($cat_name)); ?>" role="tabpanel">
+                        <div class="row g-2">
+                            <?php foreach ($cat_sizes as $sz): ?>
+                                <?php $current_surcharge = $existing_surcharges[$sz['id']] ?? ''; ?>
+                                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                                    <div class="p-2 border rounded bg-white">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold text-dark" style="font-size: 13px;"><?php echo e($sz['size_code']); ?></span>
+                                            <span class="text-muted" style="font-size: 11px;"><?php echo e($sz['size_name']); ?></span>
+                                        </div>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text px-1 text-muted" style="font-size: 11px;">+₹</span>
+                                            <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end" name="surcharges[<?php echo $sz['id']; ?>]" value="<?php echo e($current_surcharge); ?>" placeholder="0.00">
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end">
+            <button type="submit" name="save_pricing_mode" class="btn btn-brand px-4 py-2">
+                <i class="bi bi-check2-circle me-1"></i> Save Size Pricing Strategy
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleCustomSurcharges(mode) {
+    const container = document.getElementById('customSurchargesContainer');
+    if (container) {
+        if (mode === 'custom') {
+            container.classList.remove('d-none');
+        } else {
+            container.classList.add('d-none');
+        }
+    }
+}
+</script>
 
 <div class="row g-4">
     <!-- Existing Components List -->

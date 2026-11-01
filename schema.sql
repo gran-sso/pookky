@@ -51,6 +51,7 @@ CREATE TABLE IF NOT EXISTS products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     category_id INT NOT NULL,
     product_type ENUM('single', 'combo') NOT NULL DEFAULT 'single',
+    combo_pricing_mode ENUM('inherit', 'custom', 'flat') DEFAULT 'inherit',
     name VARCHAR(150) NOT NULL,
     slug VARCHAR(150) NOT NULL UNIQUE,
     sku VARCHAR(50) NOT NULL UNIQUE,
@@ -131,6 +132,21 @@ CREATE TABLE IF NOT EXISTS combo_components (
     FOREIGN KEY (combo_product_id) REFERENCES products(id) ON DELETE CASCADE,
     FOREIGN KEY (allowed_category_id) REFERENCES categories(id) ON DELETE SET NULL,
     FOREIGN KEY (allowed_product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 9.1.1 Combo Size Surcharges (Model D Hybrid Surcharge Configuration)
+CREATE TABLE IF NOT EXISTS combo_size_surcharges (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    combo_product_id INT NOT NULL,
+    component_id INT NOT NULL DEFAULT 0,
+    size_id INT NOT NULL,
+    surcharge_amount DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_combo_comp_size (combo_product_id, component_id, size_id),
+    KEY idx_combo_prod (combo_product_id),
+    KEY idx_size_id (size_id),
+    FOREIGN KEY (combo_product_id) REFERENCES products(id) ON DELETE CASCADE,
+    FOREIGN KEY (size_id) REFERENCES sizes(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 9.2 Fabric Materials

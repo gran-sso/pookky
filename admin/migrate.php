@@ -87,6 +87,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
                     CONSTRAINT `fk_cc_combo` FOREIGN KEY (`combo_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
                     CONSTRAINT `fk_cc_category` FOREIGN KEY (`allowed_category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL,
                     CONSTRAINT `fk_cc_product` FOREIGN KEY (`allowed_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
+                'combo_size_surcharges' => "CREATE TABLE IF NOT EXISTS `combo_size_surcharges` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `combo_product_id` INT NOT NULL,
+                    `component_id` INT NOT NULL DEFAULT 0,
+                    `size_id` INT NOT NULL,
+                    `surcharge_amount` DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+                    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uniq_combo_comp_size` (`combo_product_id`, `component_id`, `size_id`),
+                    KEY `idx_combo_prod` (`combo_product_id`),
+                    KEY `idx_size_id` (`size_id`),
+                    CONSTRAINT `fk_css_combo` FOREIGN KEY (`combo_product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+                    CONSTRAINT `fk_css_size` FOREIGN KEY (`size_id`) REFERENCES `sizes` (`id`) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
             ];
 
@@ -111,6 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
                 ['order_items', 'combo_product_id', 'INT DEFAULT NULL'],
                 ['order_items', 'combo_config', 'TEXT DEFAULT NULL'],
                 ['products', 'product_type', 'ENUM("single", "combo") NOT NULL DEFAULT "single"'],
+                ['products', 'combo_pricing_mode', 'ENUM("inherit", "custom", "flat") DEFAULT "inherit"'],
                 ['orders', 'transaction_id', 'VARCHAR(100) DEFAULT NULL']
             ];
 
