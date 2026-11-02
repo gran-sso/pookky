@@ -87,11 +87,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="fs-4 text-success"><i class="bi bi-whatsapp"></i></div>
                 <div>
                     <h6 class="fw-bold text-dark mb-1">WhatsApp Chat Support</h6>
-                    <span class="small text-muted d-block">
-                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', SITE_WHATSAPP); ?>?text=<?php echo urlencode('Hi Pookky, I have a query regarding products/orders.'); ?>" target="_blank" rel="noopener noreferrer" class="text-decoration-none text-success fw-semibold">
-                            <?php echo e(SITE_WHATSAPP); ?> <i class="bi bi-box-arrow-up-right small ms-1"></i>
+                    <div class="mt-1 mb-1">
+                        <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', SITE_WHATSAPP); ?>?text=<?php echo urlencode('Hi ' . SITE_NAME . ', I have a query regarding products/orders.'); ?>" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1 fw-semibold d-inline-flex align-items-center gap-2" style="font-size: 13px;">
+                            <i class="bi bi-whatsapp"></i> Chat with Us on WhatsApp <i class="bi bi-arrow-right small"></i>
                         </a>
-                    </span>
+                    </div>
                     <small class="text-muted" style="font-size: 11px;">Instant size advice & order status support</small>
                 </div>
             </div>

@@ -33,6 +33,9 @@ try {
                         <?php if (SOCIAL_YOUTUBE && SOCIAL_YOUTUBE !== '#'): ?>
                             <a href="<?php echo e(SOCIAL_YOUTUBE); ?>" target="_blank" rel="noopener noreferrer" class="social-icon" title="YouTube"><i class="bi bi-youtube"></i></a>
                         <?php endif; ?>
+                        <?php if (!empty(SITE_WHATSAPP)): ?>
+                            <a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', SITE_WHATSAPP); ?>?text=<?php echo urlencode('Hi ' . SITE_NAME . ', I have an inquiry.'); ?>" target="_blank" rel="noopener noreferrer" class="social-icon" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -88,7 +91,7 @@ try {
                     <?php if (!empty(SITE_WHATSAPP)): ?>
                     <div class="contact-item">
                         <i class="bi bi-whatsapp text-success"></i>
-                        <span><a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', SITE_WHATSAPP); ?>?text=<?php echo urlencode('Hi Pookky, I have an inquiry.'); ?>" target="_blank" rel="noopener noreferrer" class="text-reset text-decoration-none"><?php echo e(SITE_WHATSAPP); ?> (WhatsApp)</a></span>
+                        <span><a href="https://wa.me/<?php echo preg_replace('/[^0-9]/', '', SITE_WHATSAPP); ?>?text=<?php echo urlencode('Hi ' . SITE_NAME . ', I have an inquiry.'); ?>" target="_blank" rel="noopener noreferrer" class="text-reset text-decoration-none">Chat on WhatsApp</a></span>
                     </div>
                     <?php endif; ?>
                     <div class="contact-item">
