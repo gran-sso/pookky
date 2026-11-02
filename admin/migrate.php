@@ -141,6 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
                 ['products', 'product_type', 'ENUM("single", "combo") NOT NULL DEFAULT "single"'],
                 ['products', 'combo_pricing_mode', 'ENUM("inherit", "custom", "flat", "direct") DEFAULT "inherit"'],
                 ['products', 'combo_size_mode', 'ENUM("flexible", "same_size") NOT NULL DEFAULT "flexible"'],
+                ['products', 'combo_allowed_sizes', 'TEXT DEFAULT NULL'],
                 ['combo_size_surcharges', 'regular_surcharge_amount', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00'],
                 ['combo_size_surcharges', 'custom_offer_price', 'DECIMAL(10,2) DEFAULT NULL'],
                 ['combo_size_surcharges', 'custom_regular_price', 'DECIMAL(10,2) DEFAULT NULL'],

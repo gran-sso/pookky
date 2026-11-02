@@ -98,11 +98,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pricing_mode']))
             $size_mode = 'flexible';
         }
 
+        // Collect enabled sizes
+        $enabled_sizes_input = $_POST['enabled_sizes'] ?? null;
+        $allowed_sizes_json = null;
+        $enabled_size_ids = [];
+        if (is_array($enabled_sizes_input) && !empty($enabled_sizes_input)) {
+            $enabled_size_ids = array_map('intval', array_keys($enabled_sizes_input));
+            $allowed_sizes_json = json_encode(array_values($enabled_size_ids));
+        }
+
         try {
             $pdo->beginTransaction();
 
-            $up = $pdo->prepare("UPDATE products SET combo_pricing_mode = ?, combo_size_mode = ? WHERE id = ?");
-            $up->execute([$mode, $size_mode, $combo_id]);
+            $up = $pdo->prepare("UPDATE products SET combo_pricing_mode = ?, combo_size_mode = ?, combo_allowed_sizes = ? WHERE id = ?");
+            $up->execute([$mode, $size_mode, $allowed_sizes_json, $combo_id]);
 
             // Save custom or direct surcharges
             $del = $pdo->prepare("DELETE FROM combo_size_surcharges WHERE combo_product_id = ?");
@@ -122,6 +131,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pricing_mode']))
                 ");
                 $all_s_ids = array_unique(array_merge(array_keys($surcharges), array_keys($regular_surcharges)));
                 foreach ($all_s_ids as $s_id) {
+                    if (!empty($enabled_size_ids) && !in_array((int)$s_id, $enabled_size_ids)) {
+                        continue; // Exclude surcharges for disabled sizes
+                    }
                     $amt_val = isset($surcharges[$s_id]) && $surcharges[$s_id] !== '' ? (float)$surcharges[$s_id] : 0.00;
                     $reg_amt_val = isset($regular_surcharges[$s_id]) && $regular_surcharges[$s_id] !== '' ? (float)$regular_surcharges[$s_id] : 0.00;
                     if ($amt_val > 0 || $reg_amt_val > 0) {
@@ -138,6 +150,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pricing_mode']))
                 ");
                 $all_s_ids = array_unique(array_merge(array_keys($direct_offers), array_keys($direct_regulars)));
                 foreach ($all_s_ids as $s_id) {
+                    if (!empty($enabled_size_ids) && !in_array((int)$s_id, $enabled_size_ids)) {
+                        continue; // Exclude direct rates for disabled sizes
+                    }
                     $has_off = isset($direct_offers[$s_id]) && $direct_offers[$s_id] !== '';
                     $has_reg = isset($direct_regulars[$s_id]) && $direct_regulars[$s_id] !== '';
                     if ($has_off || $has_reg) {
@@ -194,6 +209,8 @@ $components = $comp_stmt->fetchAll();
 
 $combo_pricing_mode = $combo_product['combo_pricing_mode'] ?? 'inherit';
 $combo_size_mode = $combo_product['combo_size_mode'] ?? 'flexible';
+$combo_allowed_sizes_raw = $combo_product['combo_allowed_sizes'] ?? null;
+$combo_allowed_sizes = !empty($combo_allowed_sizes_raw) ? json_decode($combo_allowed_sizes_raw, true) : null;
 
 $combo_base_off = (!empty($combo_product['offer_price']) && (float)$combo_product['offer_price'] > 0) ? (float)$combo_product['offer_price'] : null;
 $combo_base_reg = (float)($combo_product['regular_price'] ?? 0);
@@ -397,11 +414,17 @@ foreach ($all_sizes as $sz) {
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
                 <div>
                     <h6 class="fw-bold text-dark mb-1">
-                        <i class="bi bi-currency-rupee me-1 text-primary"></i> Direct Size Variant Pricing (Exact Rates for this Bundle)
+                        <i class="bi bi-currency-rupee me-1 text-primary"></i> Direct Size Variant Pricing & Availability
                     </h6>
-                    <p class="small text-muted mb-0">Enter the exact Selling / Offer Price and Regular / MRP Price for each size. Customers will be charged this exact rate.</p>
+                    <p class="small text-muted mb-0">Toggle sizes on/off for this bundle and enter exact rates. Unchecked sizes will be completely hidden from customers.</p>
                 </div>
-                <div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAllSizes(true)">
+                        <i class="bi bi-check-all me-1"></i> Enable All
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllSizes(false)">
+                        <i class="bi bi-x me-1"></i> Disable All
+                    </button>
                     <button type="button" class="btn btn-outline-primary btn-sm" onclick="prefillBaseDirectPrices()">
                         <i class="bi bi-magic me-1"></i> Pre-fill Empty Sizes with Base Rates
                     </button>
@@ -414,7 +437,7 @@ foreach ($all_sizes as $sz) {
                     <strong>Base Bundle Rates:</strong> 
                     Selling Price: <strong class="text-success">₹<?php echo number_format($combo_base_selling, 2); ?></strong> | 
                     Regular Price (MRP): <strong>₹<?php echo number_format($combo_base_reg, 2); ?></strong>
-                    <span class="text-muted ms-2">(e.g. Standard sizes like 30-40 can stay at ₹<?php echo number_format($combo_base_selling, 2); ?>, while 42 is ₹633.00, and 44 is ₹650.00)</span>
+                    <span class="text-muted ms-2">(e.g. Standard sizes like 30-40 can stay at ₹<?php echo number_format($combo_base_selling, 2); ?>, while 42 is ₹633.00, and 44 is ₹650.00. Uncheck any size that is not manufactured/sold in this pack.)</span>
                 </div>
             </div>
 
@@ -436,25 +459,32 @@ foreach ($all_sizes as $sz) {
                                 <?php 
                                     $cur_direct_off = $existing_direct_offers[$sz['id']] ?? ''; 
                                     $cur_direct_reg = $existing_direct_regulars[$sz['id']] ?? ''; 
+                                    $is_size_enabled = ($combo_allowed_sizes === null) || in_array((int)$sz['id'], $combo_allowed_sizes);
                                 ?>
                                 <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-                                    <div class="p-2 border rounded bg-white shadow-xs">
+                                    <div class="p-2 border rounded bg-white shadow-xs size-card <?php echo !$is_size_enabled ? 'opacity-50 bg-light-subtle' : ''; ?>" id="size-card-direct-<?php echo $sz['id']; ?>">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="fw-bold text-dark" style="font-size: 13px;"><?php echo e($sz['size_code']); ?></span>
-                                            <span class="text-muted text-truncate ms-1" style="font-size: 11px;" title="<?php echo e($sz['size_name']); ?>"><?php echo e($sz['size_name']); ?></span>
+                                            <span class="badge <?php echo $is_size_enabled ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-muted'; ?> size-status-badge" style="font-size: 9px;">
+                                                <?php echo $is_size_enabled ? 'Active' : 'Excluded'; ?>
+                                            </span>
+                                        </div>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input size-toggle size-toggle-<?php echo $sz['id']; ?>" type="checkbox" name="enabled_sizes[<?php echo $sz['id']; ?>]" value="1" id="direct-toggle-<?php echo $sz['id']; ?>" <?php echo $is_size_enabled ? 'checked' : ''; ?> onchange="handleSizeToggle(this, <?php echo $sz['id']; ?>)">
+                                            <label class="form-check-label text-muted" for="direct-toggle-<?php echo $sz['id']; ?>" style="font-size: 10px;">Available in Pack</label>
                                         </div>
                                         <div class="mb-1">
                                             <label class="form-label text-muted mb-0" style="font-size: 10px;">Selling Price (₹)</label>
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text px-1 text-muted" style="font-size: 11px;">₹</span>
-                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end direct-offer-input" name="direct_offers[<?php echo $sz['id']; ?>]" value="<?php echo e($cur_direct_off); ?>" placeholder="<?php echo number_format($combo_base_selling, 2, '.', ''); ?>" data-base="<?php echo number_format($combo_base_selling, 2, '.', ''); ?>">
+                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end direct-offer-input" name="direct_offers[<?php echo $sz['id']; ?>]" value="<?php echo e($cur_direct_off); ?>" placeholder="<?php echo number_format($combo_base_selling, 2, '.', ''); ?>" data-base="<?php echo number_format($combo_base_selling, 2, '.', ''); ?>" <?php echo !$is_size_enabled ? 'disabled' : ''; ?>>
                                             </div>
                                         </div>
                                         <div>
                                             <label class="form-label text-muted mb-0" style="font-size: 10px;">MRP Price (₹)</label>
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text px-1 text-muted" style="font-size: 11px;">₹</span>
-                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end direct-reg-input" name="direct_regulars[<?php echo $sz['id']; ?>]" value="<?php echo e($cur_direct_reg); ?>" placeholder="<?php echo number_format($combo_base_reg, 2, '.', ''); ?>" data-base="<?php echo number_format($combo_base_reg, 2, '.', ''); ?>">
+                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end direct-reg-input" name="direct_regulars[<?php echo $sz['id']; ?>]" value="<?php echo e($cur_direct_reg); ?>" placeholder="<?php echo number_format($combo_base_reg, 2, '.', ''); ?>" data-base="<?php echo number_format($combo_base_reg, 2, '.', ''); ?>" <?php echo !$is_size_enabled ? 'disabled' : ''; ?>>
                                             </div>
                                         </div>
                                     </div>
@@ -468,10 +498,22 @@ foreach ($all_sizes as $sz) {
 
         <!-- Custom Surcharge Table (Visible only in 'custom' mode) -->
         <div id="customSurchargesContainer" class="<?php echo $combo_pricing_mode === 'custom' ? '' : 'd-none'; ?> p-3 border rounded-3 bg-light mb-4">
-            <h6 class="fw-bold text-dark mb-1">
-                <i class="bi bi-sliders2 me-1 text-primary"></i> Custom Size Surcharge Matrix (₹ Extra for this Bundle)
-            </h6>
-            <p class="small text-muted mb-3">Leave blank or 0.00 for standard sizes with no extra charge. Enter extra amount for plus/extended sizes.</p>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-sliders2 me-1 text-primary"></i> Custom Size Surcharge Matrix & Availability
+                    </h6>
+                    <p class="small text-muted mb-0">Toggle available sizes and specify extra charges added on top of base pack price.</p>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAllSizes(true)">
+                        <i class="bi bi-check-all me-1"></i> Enable All
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllSizes(false)">
+                        <i class="bi bi-x me-1"></i> Disable All
+                    </button>
+                </div>
+            </div>
 
             <ul class="nav nav-pills mb-3" id="sizeCategoryTabs" role="tablist">
                 <?php $tab_idx = 0; foreach ($sizes_by_cat as $cat_name => $cat_sizes): $tab_idx++; ?>
@@ -491,26 +533,94 @@ foreach ($all_sizes as $sz) {
                                 <?php 
                                     $current_surcharge = $existing_surcharges[$sz['id']] ?? ''; 
                                     $current_reg_surcharge = $existing_regular_surcharges[$sz['id']] ?? ''; 
+                                    $is_size_enabled = ($combo_allowed_sizes === null) || in_array((int)$sz['id'], $combo_allowed_sizes);
                                 ?>
                                 <div class="col-6 col-sm-4 col-md-3 col-lg-2">
-                                    <div class="p-2 border rounded bg-white">
+                                    <div class="p-2 border rounded bg-white shadow-xs size-card <?php echo !$is_size_enabled ? 'opacity-50 bg-light-subtle' : ''; ?>" id="size-card-custom-<?php echo $sz['id']; ?>">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="fw-bold text-dark" style="font-size: 13px;"><?php echo e($sz['size_code']); ?></span>
-                                            <span class="text-muted" style="font-size: 11px;"><?php echo e($sz['size_name']); ?></span>
+                                            <span class="badge <?php echo $is_size_enabled ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-muted'; ?> size-status-badge" style="font-size: 9px;">
+                                                <?php echo $is_size_enabled ? 'Active' : 'Excluded'; ?>
+                                            </span>
+                                        </div>
+                                        <div class="form-check form-switch mb-2">
+                                            <input class="form-check-input size-toggle size-toggle-<?php echo $sz['id']; ?>" type="checkbox" name="enabled_sizes[<?php echo $sz['id']; ?>]" value="1" id="custom-toggle-<?php echo $sz['id']; ?>" <?php echo $is_size_enabled ? 'checked' : ''; ?> onchange="handleSizeToggle(this, <?php echo $sz['id']; ?>)">
+                                            <label class="form-check-label text-muted" for="custom-toggle-<?php echo $sz['id']; ?>" style="font-size: 10px;">Available in Pack</label>
                                         </div>
                                         <div class="mb-1">
                                             <label class="form-label text-muted mb-0" style="font-size: 10px;">Selling Extra</label>
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text px-1 text-muted" style="font-size: 11px;">+₹</span>
-                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end" name="surcharges[<?php echo $sz['id']; ?>]" value="<?php echo e($current_surcharge); ?>" placeholder="0.00">
+                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end" name="surcharges[<?php echo $sz['id']; ?>]" value="<?php echo e($current_surcharge); ?>" placeholder="0.00" <?php echo !$is_size_enabled ? 'disabled' : ''; ?>>
                                             </div>
                                         </div>
                                         <div>
                                             <label class="form-label text-muted mb-0" style="font-size: 10px;">MRP Extra</label>
                                             <div class="input-group input-group-sm">
                                                 <span class="input-group-text px-1 text-muted" style="font-size: 11px;">+₹</span>
-                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end" name="regular_surcharges[<?php echo $sz['id']; ?>]" value="<?php echo e($current_reg_surcharge); ?>" placeholder="0.00">
+                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end" name="regular_surcharges[<?php echo $sz['id']; ?>]" value="<?php echo e($current_reg_surcharge); ?>" placeholder="0.00" <?php echo !$is_size_enabled ? 'disabled' : ''; ?>>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
+        <!-- General Size Availability Filter (Visible when in 'inherit' or 'flat' mode) -->
+        <div id="generalSizeAvailabilityContainer" class="<?php echo ($combo_pricing_mode === 'inherit' || $combo_pricing_mode === 'flat') ? '' : 'd-none'; ?> p-3 border rounded-3 bg-light mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-check2-square me-1 text-success"></i> Bundle Size Availability Filter
+                    </h6>
+                    <p class="small text-muted mb-0">Choose which sizes are available in this bundle. Unchecked sizes will be completely hidden from the storefront.</p>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-success btn-sm" onclick="selectAllSizes(true)">
+                        <i class="bi bi-check-all me-1"></i> Enable All
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectAllSizes(false)">
+                        <i class="bi bi-x me-1"></i> Disable All
+                    </button>
+                </div>
+            </div>
+
+            <ul class="nav nav-pills mb-3" id="generalSizeCategoryTabs" role="tablist">
+                <?php $tab_idx = 0; foreach ($sizes_by_cat as $cat_name => $cat_sizes): $tab_idx++; ?>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link btn-sm <?php echo $tab_idx === 1 ? 'active' : ''; ?>" id="gen-tab-btn-<?php echo e(slugify($cat_name)); ?>" data-bs-toggle="pill" data-bs-target="#gen-tab-pane-<?php echo e(slugify($cat_name)); ?>" type="button" role="tab">
+                            <?php echo e($cat_name); ?> (<?php echo count($cat_sizes); ?>)
+                        </button>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <div class="tab-content">
+                <?php $tab_idx = 0; foreach ($sizes_by_cat as $cat_name => $cat_sizes): $tab_idx++; ?>
+                    <div class="tab-pane fade <?php echo $tab_idx === 1 ? 'show active' : ''; ?>" id="gen-tab-pane-<?php echo e(slugify($cat_name)); ?>" role="tabpanel">
+                        <div class="row g-2">
+                            <?php foreach ($cat_sizes as $sz): ?>
+                                <?php 
+                                    $is_size_enabled = ($combo_allowed_sizes === null) || in_array((int)$sz['id'], $combo_allowed_sizes);
+                                ?>
+                                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                                    <div class="p-2 border rounded bg-white shadow-xs size-card <?php echo !$is_size_enabled ? 'opacity-50 bg-light-subtle' : ''; ?>" id="size-card-general-<?php echo $sz['id']; ?>">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold text-dark" style="font-size: 13px;"><?php echo e($sz['size_code']); ?></span>
+                                            <span class="badge <?php echo $is_size_enabled ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-muted'; ?> size-status-badge" style="font-size: 9px;">
+                                                <?php echo $is_size_enabled ? 'Active' : 'Excluded'; ?>
+                                            </span>
+                                        </div>
+                                        <div class="form-check form-switch mb-1">
+                                            <input class="form-check-input size-toggle size-toggle-<?php echo $sz['id']; ?>" type="checkbox" name="enabled_sizes[<?php echo $sz['id']; ?>]" value="1" id="general-toggle-<?php echo $sz['id']; ?>" <?php echo $is_size_enabled ? 'checked' : ''; ?> onchange="handleSizeToggle(this, <?php echo $sz['id']; ?>)">
+                                            <label class="form-check-label text-muted" for="general-toggle-<?php echo $sz['id']; ?>" style="font-size: 10px;">Available in Pack</label>
+                                        </div>
+                                        <div class="text-muted small text-truncate" style="font-size: 10px;">
+                                            <?php echo e($sz['size_name']); ?>
                                         </div>
                                     </div>
                                 </div>
@@ -533,30 +643,63 @@ foreach ($all_sizes as $sz) {
 function togglePricingMode(mode) {
     const customContainer = document.getElementById('customSurchargesContainer');
     const directContainer = document.getElementById('directPricingContainer');
+    const generalContainer = document.getElementById('generalSizeAvailabilityContainer');
     if (customContainer) {
-        if (mode === 'custom') {
-            customContainer.classList.remove('d-none');
-        } else {
-            customContainer.classList.add('d-none');
-        }
+        customContainer.classList.toggle('d-none', mode !== 'custom');
     }
     if (directContainer) {
-        if (mode === 'direct') {
-            directContainer.classList.remove('d-none');
-        } else {
-            directContainer.classList.add('d-none');
-        }
+        directContainer.classList.toggle('d-none', mode !== 'direct');
     }
+    if (generalContainer) {
+        generalContainer.classList.toggle('d-none', mode !== 'inherit' && mode !== 'flat');
+    }
+}
+
+function selectAllSizes(enable) {
+    document.querySelectorAll('.size-toggle').forEach(cb => {
+        cb.checked = enable;
+        const sizeId = cb.className.match(/size-toggle-(\d+)/)?.[1];
+        if (sizeId) {
+            handleSizeToggle(cb, sizeId);
+        }
+    });
+}
+
+function handleSizeToggle(checkbox, sizeId) {
+    const isChecked = checkbox.checked;
+    document.querySelectorAll('.size-toggle-' + sizeId).forEach(cb => {
+        cb.checked = isChecked;
+        const card = cb.closest('.size-card');
+        if (card) {
+            const inputs = card.querySelectorAll('input[type="number"]');
+            const badge = card.querySelector('.size-status-badge');
+            if (isChecked) {
+                card.classList.remove('opacity-50', 'bg-light-subtle');
+                inputs.forEach(inp => inp.disabled = false);
+                if (badge) {
+                    badge.className = 'badge bg-success-subtle text-success size-status-badge';
+                    badge.textContent = 'Active';
+                }
+            } else {
+                card.classList.add('opacity-50', 'bg-light-subtle');
+                inputs.forEach(inp => inp.disabled = true);
+                if (badge) {
+                    badge.className = 'badge bg-secondary-subtle text-muted size-status-badge';
+                    badge.textContent = 'Excluded';
+                }
+            }
+        }
+    });
 }
 
 function prefillBaseDirectPrices() {
     document.querySelectorAll('.direct-offer-input').forEach(input => {
-        if (!input.value || parseFloat(input.value) === 0) {
+        if (!input.disabled && (!input.value || parseFloat(input.value) === 0)) {
             input.value = input.getAttribute('data-base');
         }
     });
     document.querySelectorAll('.direct-reg-input').forEach(input => {
-        if (!input.value || parseFloat(input.value) === 0) {
+        if (!input.disabled && (!input.value || parseFloat(input.value) === 0)) {
             input.value = input.getAttribute('data-base');
         }
     });

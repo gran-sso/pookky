@@ -138,8 +138,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 json_response('error', 'Combo product not found or unavailable.');
             }
 
-            // Check combo pricing strategy
+            // Check combo pricing strategy and size availability
             $combo_pricing_mode = $combo_product['combo_pricing_mode'] ?? 'inherit';
+            $combo_allowed_sizes_raw = $combo_product['combo_allowed_sizes'] ?? null;
+            $combo_allowed_sizes = !empty($combo_allowed_sizes_raw) ? json_decode($combo_allowed_sizes_raw, true) : null;
             $combo_custom_surcharges = [];
             if ($combo_pricing_mode === 'custom' || $combo_pricing_mode === 'direct') {
                 $sc_stmt = $pdo->prepare("SELECT size_id, surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
@@ -196,6 +198,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     json_response('error', 'Selected piece in combo is invalid.');
                 }
 
+                // Verify that size is permitted in this bundle
+                if ($combo_allowed_sizes !== null && !in_array((int)$var_info['size_id'], $combo_allowed_sizes)) {
+                    json_response('error', "Size '{$var_info['size_code']}' is not available in this bundle.");
+                }
+
                 $stock = (int)$var_info['stock'];
                 if ($stock < $qty) {
                     json_response('error', "Piece '{$var_info['product_name']}' ({$var_info['size_code']} / {$var_info['color_name']}) has only $stock units in stock.");
@@ -247,6 +254,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } elseif ($cfg['size_id'] !== $pack_size_id) {
                         json_response('error', 'All items in this pack must have the same size.');
                     }
+                }
+
+                if ($combo_allowed_sizes !== null && !in_array((int)$pack_size_id, $combo_allowed_sizes)) {
+                    json_response('error', 'The selected pack size is not available for this bundle.');
                 }
 
                 $pack_surcharge = 0.00;

@@ -70,6 +70,8 @@ try {
     $combo_components = [];
     $combo_pricing_mode = $product['combo_pricing_mode'] ?? 'inherit';
     $combo_size_mode = $product['combo_size_mode'] ?? 'flexible';
+    $combo_allowed_sizes_raw = $product['combo_allowed_sizes'] ?? null;
+    $combo_allowed_sizes = !empty($combo_allowed_sizes_raw) ? json_decode($combo_allowed_sizes_raw, true) : null;
     $combo_custom_surcharges = [];
     $combo_custom_regular_surcharges = [];
     $combo_direct_offers = [];
@@ -144,6 +146,13 @@ try {
                 $var_rows = $v_stmt->fetchAll();
 
                 if (!empty($var_rows)) {
+                    // Filter out excluded sizes if combo has restricted allowed sizes
+                    if ($combo_allowed_sizes !== null) {
+                        $var_rows = array_values(array_filter($var_rows, function($v) use ($combo_allowed_sizes) {
+                            return in_array((int)$v['size_id'], $combo_allowed_sizes);
+                        }));
+                    }
+
                     // Compute size delta for each variant
                     foreach ($var_rows as &$v) {
                         $v_off = ($v['offer_price'] !== null && (float)$v['offer_price'] > 0) ? (float)$v['offer_price'] : null;
@@ -187,6 +196,12 @@ try {
                 foreach ($c_item['products'] as $cp) {
                     foreach ($cp['variants'] as $v) {
                         $s_id = (int)$v['size_id'];
+
+                        // Skip sizes that are excluded from this bundle
+                        if ($combo_allowed_sizes !== null && !in_array($s_id, $combo_allowed_sizes)) {
+                            continue;
+                        }
+
                         if (!isset($pack_sizes_map[$s_id])) {
                             $surcharge = (float)($combo_custom_surcharges[$s_id] ?? 0.00);
                             $reg_surcharge = (float)($combo_custom_regular_surcharges[$s_id] ?? 0.00);
