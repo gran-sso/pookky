@@ -809,7 +809,7 @@ function initComboBuilder() {
             }
         }
 
-        const priceDisplay = document.getElementById('product-price-display');
+        const priceDisplay = document.getElementById('product-price-span') || document.getElementById('product-price-display');
         if (priceDisplay) {
             priceDisplay.textContent = '₹ ' + currentSelling.toFixed(2);
         }
