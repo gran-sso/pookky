@@ -32,51 +32,61 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (empty($email) || empty($password)) {
         $error = 'Please fill in all fields.';
     } else {
-        try {
-            $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ? LIMIT 1");
-            $stmt->execute([$email]);
-            $customer = $stmt->fetch();
+        // Enforce rate limiting / brute-force throttle
+        $throttle = check_login_throttle($email, 'customer');
+        if (!$throttle['allowed']) {
+            $error = $throttle['message'];
+        } else {
+            try {
+                $stmt = $pdo->prepare("SELECT * FROM customers WHERE email = ? LIMIT 1");
+                $stmt->execute([$email]);
+                $customer = $stmt->fetch();
 
-            if ($customer && password_verify($password, $customer['password'])) {
-                if ($customer['status'] == 1) {
-                    // 1. Capture old guest session ID BEFORE regeneration
-                    $old_guest_session = session_id();
+                if ($customer && password_verify($password, $customer['password'])) {
+                    if ($customer['status'] == 1) {
+                        // Reset failed attempts on successful login
+                        clear_login_throttle($email, 'customer');
 
-                    // 2. Set Customer Sessions
-                    $_SESSION['customer_id'] = $customer['id'];
-                    $_SESSION['customer_name'] = $customer['name'];
+                        // 1. Capture old guest session ID BEFORE regeneration
+                        $old_guest_session = session_id();
 
-                    // 3. Seamlessly Merge Guest Cart to Customer Profile
-                    $total_cart_items = merge_guest_cart_to_customer($customer['id'], $old_guest_session);
+                        // 2. Set Customer Sessions
+                        $_SESSION['customer_id'] = $customer['id'];
+                        $_SESSION['customer_name'] = $customer['name'];
 
-                    // 4. Safely Regenerate Session ID for Security
-                    session_regenerate_id(true);
+                        // 3. Seamlessly Merge Guest Cart to Customer Profile
+                        $total_cart_items = merge_guest_cart_to_customer($customer['id'], $old_guest_session);
 
-                    // 5. Smart Redirection:
-                    // If a specific return URL was requested, use it.
-                    // Otherwise, if the customer has items in cart, take them directly to cart.php.
-                    $redirect = $redirect_target;
-                    unset($_SESSION['redirect_url']);
+                        // 4. Safely Regenerate Session ID for Security
+                        session_regenerate_id(true);
 
-                    if (empty($redirect) || $redirect === 'dashboard.php') {
-                        if ($total_cart_items > 0) {
-                            $redirect = 'cart.php';
-                        } else {
-                            $redirect = 'dashboard.php';
+                        // 5. Smart Redirection:
+                        // If a specific return URL was requested, use it.
+                        // Otherwise, if the customer has items in cart, take them directly to cart.php.
+                        $redirect = $redirect_target;
+                        unset($_SESSION['redirect_url']);
+
+                        if (empty($redirect) || $redirect === 'dashboard.php') {
+                            if ($total_cart_items > 0) {
+                                $redirect = 'cart.php';
+                            } else {
+                                $redirect = 'dashboard.php';
+                            }
                         }
-                    }
 
-                    set_flash_message('success', 'Logged in successfully! Welcome back, ' . $customer['name']);
-                    header('Location: ' . $redirect);
-                    exit;
+                        set_flash_message('success', 'Logged in successfully! Welcome back, ' . $customer['name']);
+                        header('Location: ' . $redirect);
+                        exit;
+                    } else {
+                        $error = 'Your customer account is currently suspended.';
+                    }
                 } else {
-                    $error = 'Your customer account is currently suspended.';
+                    $throttle_res = record_failed_login($email, 'customer');
+                    $error = !empty($throttle_res['message']) ? $throttle_res['message'] : 'Invalid email or password.';
                 }
-            } else {
-                $error = 'Invalid email or password.';
+            } catch (PDOException $e) {
+                $error = 'A database error occurred. Please try again.';
             }
-        } catch (PDOException $e) {
-            $error = 'A database error occurred. Please try again.';
         }
     }
 }

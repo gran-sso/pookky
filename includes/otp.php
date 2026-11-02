@@ -24,10 +24,17 @@ function ensure_otp_schema_exists() {
                 purpose VARCHAR(50) NOT NULL DEFAULT 'registration',
                 expires_at DATETIME NOT NULL,
                 is_used TINYINT DEFAULT 0,
+                attempts INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_email_purpose (email, purpose, is_used)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         ");
+
+        // Check if attempts column exists on email_otps table
+        $col_check_att = $pdo->query("SHOW COLUMNS FROM email_otps LIKE 'attempts'")->fetch();
+        if (!$col_check_att) {
+            $pdo->exec("ALTER TABLE email_otps ADD COLUMN attempts INT DEFAULT 0 AFTER is_used");
+        }
 
         // Check if email_verified column exists on customers table
         $col_check = $pdo->query("SHOW COLUMNS FROM customers LIKE 'email_verified'")->fetch();
@@ -77,8 +84,8 @@ function create_otp($email, $purpose = 'registration', $expiry_minutes = 10) {
 
     try {
         $stmt = $pdo->prepare("
-            INSERT INTO email_otps (email, otp_code, purpose, expires_at, is_used) 
-            VALUES (?, ?, ?, ?, 0)
+            INSERT INTO email_otps (email, otp_code, purpose, expires_at, is_used, attempts) 
+            VALUES (?, ?, ?, ?, 0, 0)
         ");
         $stmt->execute([$email, $otp_code, $purpose, $expires_at]);
     } catch (PDOException $e) {
@@ -156,7 +163,7 @@ function verify_otp($email, $otp_code, $purpose = 'registration') {
     try {
         // Find latest matching OTP
         $stmt = $pdo->prepare("
-            SELECT id, otp_code, expires_at, is_used 
+            SELECT id, otp_code, expires_at, is_used, attempts 
             FROM email_otps 
             WHERE email = ? AND purpose = ? 
             ORDER BY id DESC LIMIT 1
@@ -178,6 +185,22 @@ function verify_otp($email, $otp_code, $purpose = 'registration') {
             ];
         }
 
+        if ((int)$row['is_used'] === 2) {
+            return [
+                'success' => false,
+                'message' => 'This verification code has been invalidated due to too many incorrect attempts. Please request a new code.'
+            ];
+        }
+
+        // Check if maximum failed attempts exceeded
+        if ((int)($row['attempts'] ?? 0) >= 5) {
+            $pdo->prepare("UPDATE email_otps SET is_used = 2 WHERE id = ?")->execute([$row['id']]);
+            return [
+                'success' => false,
+                'message' => 'Too many incorrect attempts. For your security, this verification code is no longer valid. Please click "Resend OTP" to receive a fresh code.'
+            ];
+        }
+
         // Check expiry
         if (strtotime($row['expires_at']) < time()) {
             return [
@@ -186,12 +209,25 @@ function verify_otp($email, $otp_code, $purpose = 'registration') {
             ];
         }
 
-        // Validate code equality
-        if ($row['otp_code'] !== $otp_code) {
-            return [
-                'success' => false,
-                'message' => 'Invalid verification code. Please check your email and try again.'
-            ];
+        // Constant-time comparison to prevent timing attacks
+        if (!hash_equals((string)$row['otp_code'], (string)$otp_code)) {
+            $new_attempts = (int)($row['attempts'] ?? 0) + 1;
+            if ($new_attempts >= 5) {
+                $up = $pdo->prepare("UPDATE email_otps SET attempts = ?, is_used = 2 WHERE id = ?");
+                $up->execute([$new_attempts, $row['id']]);
+                return [
+                    'success' => false,
+                    'message' => 'Too many incorrect attempts. For your security, this verification code is no longer valid. Please click "Resend OTP" to receive a fresh code.'
+                ];
+            } else {
+                $up = $pdo->prepare("UPDATE email_otps SET attempts = ? WHERE id = ?");
+                $up->execute([$new_attempts, $row['id']]);
+                $remaining = 5 - $new_attempts;
+                return [
+                    'success' => false,
+                    'message' => "Invalid verification code. You have {$remaining} attempt" . ($remaining === 1 ? '' : 's') . " remaining."
+                ];
+            }
         }
 
         // Mark OTP as used

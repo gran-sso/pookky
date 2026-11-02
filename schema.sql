@@ -426,6 +426,7 @@ CREATE TABLE IF NOT EXISTS email_otps (
     purpose VARCHAR(50) NOT NULL DEFAULT 'registration',
     expires_at DATETIME NOT NULL,
     is_used TINYINT DEFAULT 0,
+    attempts INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_email_purpose (email, purpose, is_used)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -440,6 +441,21 @@ CREATE TABLE IF NOT EXISTS pending_checkouts (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     INDEX (order_number),
     INDEX (customer_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 29. Login Rate Limiting & Throttling
+CREATE TABLE IF NOT EXISTS login_attempts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    attempt_key VARCHAR(64) NOT NULL,
+    user_identifier VARCHAR(150) NOT NULL,
+    ip_address VARCHAR(45) NOT NULL,
+    user_type ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
+    attempts INT NOT NULL DEFAULT 1,
+    last_attempt DATETIME NOT NULL,
+    locked_until DATETIME DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uniq_attempt_key_type (attempt_key, user_type),
+    INDEX idx_locked (locked_until)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 

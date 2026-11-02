@@ -53,6 +53,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
                     KEY `idx_customer_id` (`customer_id`)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
 
+                'login_attempts' => "CREATE TABLE IF NOT EXISTS `login_attempts` (
+                    `id` INT AUTO_INCREMENT PRIMARY KEY,
+                    `attempt_key` VARCHAR(64) NOT NULL,
+                    `user_identifier` VARCHAR(150) NOT NULL,
+                    `ip_address` VARCHAR(45) NOT NULL,
+                    `user_type` ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
+                    `attempts` INT NOT NULL DEFAULT 1,
+                    `last_attempt` DATETIME NOT NULL,
+                    `locked_until` DATETIME DEFAULT NULL,
+                    `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE KEY `uniq_attempt_key_type` (`attempt_key`,`user_type`),
+                    KEY `idx_locked` (`locked_until`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4",
+
                 'fabrics' => "CREATE TABLE IF NOT EXISTS `fabrics` (
                     `id` INT AUTO_INCREMENT PRIMARY KEY,
                     `name` VARCHAR(100) NOT NULL UNIQUE,
@@ -126,7 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
                 ['order_items', 'combo_config', 'TEXT DEFAULT NULL'],
                 ['products', 'product_type', 'ENUM("single", "combo") NOT NULL DEFAULT "single"'],
                 ['products', 'combo_pricing_mode', 'ENUM("inherit", "custom", "flat") DEFAULT "inherit"'],
-                ['orders', 'transaction_id', 'VARCHAR(100) DEFAULT NULL']
+                ['orders', 'transaction_id', 'VARCHAR(100) DEFAULT NULL'],
+                ['email_otps', 'attempts', 'INT DEFAULT 0']
             ];
 
             foreach ($columns as [$tbl, $col, $def]) {

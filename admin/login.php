@@ -26,32 +26,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (empty($username) || empty($password)) {
         $error = 'Please fill in all fields.';
     } else {
-        try {
-            // Find administrator by username or email
-            $stmt = $pdo->prepare("SELECT * FROM admins WHERE username = ? OR email = ? LIMIT 1");
-            $stmt->execute([$username, $username]);
-            $admin = $stmt->fetch();
+        // Enforce rate limiting / brute-force throttle
+        $throttle = check_login_throttle($username, 'admin');
+        if (!$throttle['allowed']) {
+            $error = $throttle['message'];
+        } else {
+            try {
+                // Find administrator by username or email
+                $stmt = $pdo->prepare("SELECT * FROM admins WHERE username = ? OR email = ? LIMIT 1");
+                $stmt->execute([$username, $username]);
+                $admin = $stmt->fetch();
 
-            if ($admin && password_verify($password, $admin['password'])) {
-                if ($admin['status'] == 1) {
-                    // Start secure session
-                    session_regenerate_id(true);
-                    $_SESSION['admin_id'] = $admin['id'];
-                    
-                    // Log success
-                    log_admin_action($admin['id'], 'Login successful');
+                if ($admin && password_verify($password, $admin['password'])) {
+                    if ($admin['status'] == 1) {
+                        // Reset failed attempts on successful login
+                        clear_login_throttle($username, 'admin');
 
-                    set_flash_message('success', 'Welcome back, ' . $admin['name'] . '!');
-                    header('Location: index.php');
-                    exit;
+                        // Start secure session
+                        session_regenerate_id(true);
+                        $_SESSION['admin_id'] = $admin['id'];
+                        
+                        // Log success
+                        log_admin_action($admin['id'], 'Login successful');
+
+                        set_flash_message('success', 'Welcome back, ' . $admin['name'] . '!');
+                        header('Location: index.php');
+                        exit;
+                    } else {
+                        $error = 'Your admin account is suspended.';
+                    }
                 } else {
-                    $error = 'Your admin account is suspended.';
+                    $throttle_res = record_failed_login($username, 'admin');
+                    $error = !empty($throttle_res['message']) ? $throttle_res['message'] : 'Invalid credentials provided.';
                 }
-            } else {
-                $error = 'Invalid credentials provided.';
+            } catch (PDOException $e) {
+                $error = 'A database error occurred. Try again later.';
             }
-        } catch (PDOException $e) {
-            $error = 'A database error occurred. Try again later.';
         }
     }
 }

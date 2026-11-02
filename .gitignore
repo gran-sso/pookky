@@ -36,6 +36,8 @@ uploads/*
 !uploads/index.html
 !uploads/.gitkeep
 !uploads/.htaccess
+uploads 2/
+*.zip
 
 # Database dumps / SQL backups (keep initial schema if intended, ignore backups)
 *.sql.gz

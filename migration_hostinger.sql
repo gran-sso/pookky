@@ -103,6 +103,21 @@ CREATE TABLE IF NOT EXISTS `combo_size_surcharges` (
   CONSTRAINT `fk_css_size` FOREIGN KEY (`size_id`) REFERENCES `sizes` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 8. Login Rate Limiting & Throttling
+CREATE TABLE IF NOT EXISTS `login_attempts` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `attempt_key` VARCHAR(64) NOT NULL,
+  `user_identifier` VARCHAR(150) NOT NULL,
+  `ip_address` VARCHAR(45) NOT NULL,
+  `user_type` ENUM('customer', 'admin') NOT NULL DEFAULT 'customer',
+  `attempts` INT NOT NULL DEFAULT 1,
+  `last_attempt` DATETIME NOT NULL,
+  `locked_until` DATETIME DEFAULT NULL,
+  `created_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY `uniq_attempt_key_type` (`attempt_key`,`user_type`),
+  KEY `idx_locked` (`locked_until`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- ------------------------------------------------------------------------------
 -- STEP 2: SAFELY ADD NEW COLUMNS TO EXISTING TABLES (IF NOT ALREADY PRESENT)
@@ -159,6 +174,9 @@ CALL AddColumnIfNotExists('products', 'combo_pricing_mode', 'ENUM("inherit", "cu
 
 -- F. Update `orders` table for Online Gateway Transaction Reference
 CALL AddColumnIfNotExists('orders', 'transaction_id', 'VARCHAR(100) DEFAULT NULL');
+
+-- G. Update `email_otps` table for OTP brute-force protection
+CALL AddColumnIfNotExists('email_otps', 'attempts', 'INT DEFAULT 0 AFTER is_used');
 
 -- Cleanup temporary stored procedure
 DROP PROCEDURE IF EXISTS `AddColumnIfNotExists`;
