@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pricing_mode']))
         $error = 'Security check failed.';
     } else {
         $mode = $_POST['combo_pricing_mode'] ?? 'inherit';
-        if (!in_array($mode, ['inherit', 'custom', 'flat'])) {
+        if (!in_array($mode, ['inherit', 'custom', 'flat', 'direct'])) {
             $mode = 'inherit';
         }
 
@@ -104,9 +104,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pricing_mode']))
             $up = $pdo->prepare("UPDATE products SET combo_pricing_mode = ?, combo_size_mode = ? WHERE id = ?");
             $up->execute([$mode, $size_mode, $combo_id]);
 
-            // Save custom surcharges if in custom mode
+            // Save custom or direct surcharges
             $del = $pdo->prepare("DELETE FROM combo_size_surcharges WHERE combo_product_id = ?");
             $del->execute([$combo_id]);
+
+            $combo_base_off = (!empty($combo_product['offer_price']) && (float)$combo_product['offer_price'] > 0) ? (float)$combo_product['offer_price'] : null;
+            $combo_base_reg = (float)($combo_product['regular_price'] ?? 0);
+            $combo_base_selling = $combo_base_off !== null ? $combo_base_off : $combo_base_reg;
 
             if ($mode === 'custom') {
                 $surcharges = $_POST['surcharges'] ?? [];
@@ -122,6 +126,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pricing_mode']))
                     $reg_amt_val = isset($regular_surcharges[$s_id]) && $regular_surcharges[$s_id] !== '' ? (float)$regular_surcharges[$s_id] : 0.00;
                     if ($amt_val > 0 || $reg_amt_val > 0) {
                         $ins_sc->execute([$combo_id, (int)$s_id, $amt_val, $reg_amt_val]);
+                    }
+                }
+            } elseif ($mode === 'direct') {
+                $direct_offers = $_POST['direct_offers'] ?? [];
+                $direct_regulars = $_POST['direct_regulars'] ?? [];
+
+                $ins_direct = $pdo->prepare("
+                    INSERT INTO combo_size_surcharges (combo_product_id, component_id, size_id, surcharge_amount, regular_surcharge_amount, custom_offer_price, custom_regular_price)
+                    VALUES (?, 0, ?, ?, ?, ?, ?)
+                ");
+                $all_s_ids = array_unique(array_merge(array_keys($direct_offers), array_keys($direct_regulars)));
+                foreach ($all_s_ids as $s_id) {
+                    $has_off = isset($direct_offers[$s_id]) && $direct_offers[$s_id] !== '';
+                    $has_reg = isset($direct_regulars[$s_id]) && $direct_regulars[$s_id] !== '';
+                    if ($has_off || $has_reg) {
+                        $dir_off_val = $has_off ? (float)$direct_offers[$s_id] : null;
+                        $dir_reg_val = $has_reg ? (float)$direct_regulars[$s_id] : null;
+
+                        // Calculate selling difference relative to combo base selling price
+                        $effective_direct_selling = $dir_off_val !== null ? $dir_off_val : ($dir_reg_val !== null ? $dir_reg_val : $combo_base_selling);
+                        $amt_val = max(0.00, round($effective_direct_selling - $combo_base_selling, 2));
+
+                        // Calculate regular/MRP difference relative to combo base MRP
+                        $effective_direct_reg = $dir_reg_val !== null ? $dir_reg_val : ($dir_off_val !== null ? $dir_off_val : $combo_base_reg);
+                        $reg_amt_val = max(0.00, round($effective_direct_reg - $combo_base_reg, 2));
+
+                        $ins_direct->execute([
+                            $combo_id,
+                            (int)$s_id,
+                            $amt_val,
+                            $reg_amt_val,
+                            $dir_off_val,
+                            $dir_reg_val
+                        ]);
                     }
                 }
             }
@@ -157,15 +195,23 @@ $components = $comp_stmt->fetchAll();
 $combo_pricing_mode = $combo_product['combo_pricing_mode'] ?? 'inherit';
 $combo_size_mode = $combo_product['combo_size_mode'] ?? 'flexible';
 
-// Fetch existing custom size surcharges for this combo
-$surcharges_stmt = $pdo->prepare("SELECT size_id, surcharge_amount, regular_surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
+$combo_base_off = (!empty($combo_product['offer_price']) && (float)$combo_product['offer_price'] > 0) ? (float)$combo_product['offer_price'] : null;
+$combo_base_reg = (float)($combo_product['regular_price'] ?? 0);
+$combo_base_selling = $combo_base_off !== null ? $combo_base_off : $combo_base_reg;
+
+// Fetch existing custom size surcharges & direct prices for this combo
+$surcharges_stmt = $pdo->prepare("SELECT size_id, surcharge_amount, regular_surcharge_amount, custom_offer_price, custom_regular_price FROM combo_size_surcharges WHERE combo_product_id = ?");
 $surcharges_stmt->execute([$combo_id]);
 $sc_rows = $surcharges_stmt->fetchAll();
 $existing_surcharges = [];
 $existing_regular_surcharges = [];
+$existing_direct_offers = [];
+$existing_direct_regulars = [];
 foreach ($sc_rows as $row) {
     $existing_surcharges[$row['size_id']] = $row['surcharge_amount'];
     $existing_regular_surcharges[$row['size_id']] = $row['regular_surcharge_amount'];
+    $existing_direct_offers[$row['size_id']] = $row['custom_offer_price'];
+    $existing_direct_regulars[$row['size_id']] = $row['custom_regular_price'];
 }
 
 // Fetch all sizes grouped by category_type for custom surcharge configuration
@@ -215,8 +261,25 @@ foreach ($all_sizes as $sz) {
             </h5>
             <p class="text-muted small mb-0">Control how prices adapt when customers select different sizes (e.g. plus sizes like 44B) in this bundle.</p>
         </div>
-        <span class="badge <?php echo $combo_pricing_mode === 'inherit' ? 'bg-success-subtle text-success' : ($combo_pricing_mode === 'custom' ? 'bg-primary-subtle text-primary' : 'bg-secondary-subtle text-secondary'); ?> border px-3 py-2">
-            Active: <strong><?php echo ucfirst($combo_pricing_mode); ?> Mode</strong>
+        <?php 
+            $mode_badge_class = 'bg-secondary-subtle text-secondary';
+            $mode_label = ucfirst($combo_pricing_mode) . ' Mode';
+            if ($combo_pricing_mode === 'inherit') {
+                $mode_badge_class = 'bg-success-subtle text-success';
+                $mode_label = 'Inherit Mode';
+            } elseif ($combo_pricing_mode === 'direct') {
+                $mode_badge_class = 'bg-primary-subtle text-primary';
+                $mode_label = 'Direct Exact Pricing';
+            } elseif ($combo_pricing_mode === 'custom') {
+                $mode_badge_class = 'bg-info-subtle text-info';
+                $mode_label = 'Custom Surcharges';
+            } elseif ($combo_pricing_mode === 'flat') {
+                $mode_badge_class = 'bg-secondary-subtle text-secondary';
+                $mode_label = 'Flat Bundle Price';
+            }
+        ?>
+        <span class="badge <?php echo $mode_badge_class; ?> border px-3 py-2">
+            Active: <strong><?php echo $mode_label; ?></strong>
         </span>
     </div>
 
@@ -257,49 +320,67 @@ foreach ($all_sizes as $sz) {
 
         <div class="row g-3 mb-4">
             <!-- Mode 1: Inherit -->
-            <div class="col-12 col-md-4">
+            <div class="col-12 col-md-6 col-xl-3">
                 <label class="card h-100 p-3 border rounded-3 cursor-pointer pricing-mode-card <?php echo $combo_pricing_mode === 'inherit' ? 'border-success bg-success-subtle bg-opacity-10' : ''; ?>" style="cursor: pointer;">
                     <div class="d-flex align-items-start gap-2">
-                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="inherit" <?php echo $combo_pricing_mode === 'inherit' ? 'checked' : ''; ?> onchange="toggleCustomSurcharges(this.value)">
+                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="inherit" <?php echo $combo_pricing_mode === 'inherit' ? 'checked' : ''; ?> onchange="togglePricingMode(this.value)">
                         <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="fw-bold text-dark">1. Inherit from Single Products</span>
-                                <span class="badge bg-success-subtle text-success small" style="font-size: 10px;">Recommended</span>
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                <span class="fw-bold text-dark">1. Inherit Prices</span>
+                                <span class="badge bg-success-subtle text-success small" style="font-size: 10px;">Automatic</span>
                             </div>
                             <p class="small text-muted mb-0 mt-1">
-                                Automatically pulls price differences from single product variant matrices. If 44B costs +₹50 on the single bra, the bundle automatically adds +₹50. Zero manual setup.
+                                Pulls price differences directly from single product variant matrices. If 44B costs +₹50 on the single bra, bundle adds +₹50.
                             </p>
                         </div>
                     </div>
                 </label>
             </div>
 
-            <!-- Mode 2: Custom -->
-            <div class="col-12 col-md-4">
-                <label class="card h-100 p-3 border rounded-3 cursor-pointer pricing-mode-card <?php echo $combo_pricing_mode === 'custom' ? 'border-primary bg-primary-subtle bg-opacity-10' : ''; ?>" style="cursor: pointer;">
+            <!-- Mode 2: Direct Exact Rates (New) -->
+            <div class="col-12 col-md-6 col-xl-3">
+                <label class="card h-100 p-3 border rounded-3 cursor-pointer pricing-mode-card <?php echo $combo_pricing_mode === 'direct' ? 'border-primary bg-primary-subtle bg-opacity-10' : ''; ?>" style="cursor: pointer;">
                     <div class="d-flex align-items-start gap-2">
-                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="custom" <?php echo $combo_pricing_mode === 'custom' ? 'checked' : ''; ?> onchange="toggleCustomSurcharges(this.value)">
+                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="direct" <?php echo $combo_pricing_mode === 'direct' ? 'checked' : ''; ?> onchange="togglePricingMode(this.value)">
                         <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="fw-bold text-dark">2. Custom Bundle Surcharges</span>
-                                <span class="badge bg-primary-subtle text-primary small" style="font-size: 10px;">Overrides</span>
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                <span class="fw-bold text-dark">2. Direct Exact Pricing</span>
+                                <span class="badge bg-primary-subtle text-primary small" style="font-size: 10px;">Exact Rates</span>
                             </div>
                             <p class="small text-muted mb-0 mt-1">
-                                Define exact extra charges for specific sizes inside this bundle only (e.g. charge a discounted +₹26 for 42 or +₹43 for 44).
+                                Set exact Selling Price and MRP for each size (e.g. 30-40 @ ₹607, 42 @ ₹633, 44 @ ₹650). No need to calculate differences.
                             </p>
                         </div>
                     </div>
                 </label>
             </div>
 
-            <!-- Mode 3: Flat -->
-            <div class="col-12 col-md-4">
+            <!-- Mode 3: Custom Surcharges -->
+            <div class="col-12 col-md-6 col-xl-3">
+                <label class="card h-100 p-3 border rounded-3 cursor-pointer pricing-mode-card <?php echo $combo_pricing_mode === 'custom' ? 'border-info bg-info-subtle bg-opacity-10' : ''; ?>" style="cursor: pointer;">
+                    <div class="d-flex align-items-start gap-2">
+                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="custom" <?php echo $combo_pricing_mode === 'custom' ? 'checked' : ''; ?> onchange="togglePricingMode(this.value)">
+                        <div>
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                <span class="fw-bold text-dark">3. Custom Surcharges</span>
+                                <span class="badge bg-info-subtle text-info small" style="font-size: 10px;">Differences</span>
+                            </div>
+                            <p class="small text-muted mb-0 mt-1">
+                                Define exact extra charges added on top of base pack price (e.g. +₹26 extra for 42, +₹43 extra for 44).
+                            </p>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Mode 4: Flat -->
+            <div class="col-12 col-md-6 col-xl-3">
                 <label class="card h-100 p-3 border rounded-3 cursor-pointer pricing-mode-card <?php echo $combo_pricing_mode === 'flat' ? 'border-secondary bg-light' : ''; ?>" style="cursor: pointer;">
                     <div class="d-flex align-items-start gap-2">
-                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="flat" <?php echo $combo_pricing_mode === 'flat' ? 'checked' : ''; ?> onchange="toggleCustomSurcharges(this.value)">
+                        <input class="form-check-input mt-1" type="radio" name="combo_pricing_mode" value="flat" <?php echo $combo_pricing_mode === 'flat' ? 'checked' : ''; ?> onchange="togglePricingMode(this.value)">
                         <div>
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="fw-bold text-dark">3. Flat Bundle Price</span>
+                            <div class="d-flex align-items-center gap-1 flex-wrap">
+                                <span class="fw-bold text-dark">4. Flat Bundle Price</span>
                                 <span class="badge bg-secondary-subtle text-secondary small" style="font-size: 10px;">Promotional</span>
                             </div>
                             <p class="small text-muted mb-0 mt-1">
@@ -308,6 +389,80 @@ foreach ($all_sizes as $sz) {
                         </div>
                     </div>
                 </label>
+            </div>
+        </div>
+
+        <!-- Direct Exact Pricing Table (Visible only in 'direct' mode) -->
+        <div id="directPricingContainer" class="<?php echo $combo_pricing_mode === 'direct' ? '' : 'd-none'; ?> p-3 border rounded-3 bg-light mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-2 gap-2">
+                <div>
+                    <h6 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-currency-rupee me-1 text-primary"></i> Direct Size Variant Pricing (Exact Rates for this Bundle)
+                    </h6>
+                    <p class="small text-muted mb-0">Enter the exact Selling / Offer Price and Regular / MRP Price for each size. Customers will be charged this exact rate.</p>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="prefillBaseDirectPrices()">
+                        <i class="bi bi-magic me-1"></i> Pre-fill Empty Sizes with Base Rates
+                    </button>
+                </div>
+            </div>
+
+            <div class="alert alert-info py-2 px-3 small d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-info-circle-fill fs-5"></i>
+                <div>
+                    <strong>Base Bundle Rates:</strong> 
+                    Selling Price: <strong class="text-success">₹<?php echo number_format($combo_base_selling, 2); ?></strong> | 
+                    Regular Price (MRP): <strong>₹<?php echo number_format($combo_base_reg, 2); ?></strong>
+                    <span class="text-muted ms-2">(e.g. Standard sizes like 30-40 can stay at ₹<?php echo number_format($combo_base_selling, 2); ?>, while 42 is ₹633.00, and 44 is ₹650.00)</span>
+                </div>
+            </div>
+
+            <ul class="nav nav-pills mb-3" id="directSizeCategoryTabs" role="tablist">
+                <?php $tab_idx = 0; foreach ($sizes_by_cat as $cat_name => $cat_sizes): $tab_idx++; ?>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link btn-sm <?php echo $tab_idx === 1 ? 'active' : ''; ?>" id="direct-tab-btn-<?php echo e(slugify($cat_name)); ?>" data-bs-toggle="pill" data-bs-target="#direct-tab-pane-<?php echo e(slugify($cat_name)); ?>" type="button" role="tab">
+                            <?php echo e($cat_name); ?> (<?php echo count($cat_sizes); ?>)
+                        </button>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+
+            <div class="tab-content">
+                <?php $tab_idx = 0; foreach ($sizes_by_cat as $cat_name => $cat_sizes): $tab_idx++; ?>
+                    <div class="tab-pane fade <?php echo $tab_idx === 1 ? 'show active' : ''; ?>" id="direct-tab-pane-<?php echo e(slugify($cat_name)); ?>" role="tabpanel">
+                        <div class="row g-2">
+                            <?php foreach ($cat_sizes as $sz): ?>
+                                <?php 
+                                    $cur_direct_off = $existing_direct_offers[$sz['id']] ?? ''; 
+                                    $cur_direct_reg = $existing_direct_regulars[$sz['id']] ?? ''; 
+                                ?>
+                                <div class="col-6 col-sm-4 col-md-3 col-lg-2">
+                                    <div class="p-2 border rounded bg-white shadow-xs">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="fw-bold text-dark" style="font-size: 13px;"><?php echo e($sz['size_code']); ?></span>
+                                            <span class="text-muted text-truncate ms-1" style="font-size: 11px;" title="<?php echo e($sz['size_name']); ?>"><?php echo e($sz['size_name']); ?></span>
+                                        </div>
+                                        <div class="mb-1">
+                                            <label class="form-label text-muted mb-0" style="font-size: 10px;">Selling Price (₹)</label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text px-1 text-muted" style="font-size: 11px;">₹</span>
+                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end direct-offer-input" name="direct_offers[<?php echo $sz['id']; ?>]" value="<?php echo e($cur_direct_off); ?>" placeholder="<?php echo number_format($combo_base_selling, 2, '.', ''); ?>" data-base="<?php echo number_format($combo_base_selling, 2, '.', ''); ?>">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-muted mb-0" style="font-size: 10px;">MRP Price (₹)</label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text px-1 text-muted" style="font-size: 11px;">₹</span>
+                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end direct-reg-input" name="direct_regulars[<?php echo $sz['id']; ?>]" value="<?php echo e($cur_direct_reg); ?>" placeholder="<?php echo number_format($combo_base_reg, 2, '.', ''); ?>" data-base="<?php echo number_format($combo_base_reg, 2, '.', ''); ?>">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
 
@@ -375,15 +530,36 @@ foreach ($all_sizes as $sz) {
 </div>
 
 <script>
-function toggleCustomSurcharges(mode) {
-    const container = document.getElementById('customSurchargesContainer');
-    if (container) {
+function togglePricingMode(mode) {
+    const customContainer = document.getElementById('customSurchargesContainer');
+    const directContainer = document.getElementById('directPricingContainer');
+    if (customContainer) {
         if (mode === 'custom') {
-            container.classList.remove('d-none');
+            customContainer.classList.remove('d-none');
         } else {
-            container.classList.add('d-none');
+            customContainer.classList.add('d-none');
         }
     }
+    if (directContainer) {
+        if (mode === 'direct') {
+            directContainer.classList.remove('d-none');
+        } else {
+            directContainer.classList.add('d-none');
+        }
+    }
+}
+
+function prefillBaseDirectPrices() {
+    document.querySelectorAll('.direct-offer-input').forEach(input => {
+        if (!input.value || parseFloat(input.value) === 0) {
+            input.value = input.getAttribute('data-base');
+        }
+    });
+    document.querySelectorAll('.direct-reg-input').forEach(input => {
+        if (!input.value || parseFloat(input.value) === 0) {
+            input.value = input.getAttribute('data-base');
+        }
+    });
 }
 </script>
 

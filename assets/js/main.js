@@ -640,6 +640,8 @@ function initComboBuilder() {
     let selectedPackSizeCode = null;
     let selectedPackDelta = 0;
     let selectedPackRegDelta = 0;
+    let selectedPackExactOffer = null;
+    let selectedPackExactReg = null;
 
     // Selection tracking per component ID: { [compId]: { colorId, sizeId, variantId, sku, sizeCode, colorName, stock } }
     const selections = {};
@@ -797,8 +799,15 @@ function initComboBuilder() {
         const masterOff = (window.productMasterPricing && window.productMasterPricing.offer_price) ? parseFloat(window.productMasterPricing.offer_price) : null;
 
         const baseSelling = masterOff !== null ? masterOff : masterReg;
-        const currentSelling = baseSelling + totalDelta;
-        const currentReg = masterReg + totalRegDelta;
+        let currentSelling = baseSelling + totalDelta;
+        let currentReg = masterReg + totalRegDelta;
+
+        if (isSameSizeMode && window.comboPricingMode === 'direct' && selectedPackExactOffer !== null && !isNaN(selectedPackExactOffer) && selectedPackExactOffer > 0) {
+            currentSelling = selectedPackExactOffer;
+            if (selectedPackExactReg !== null && !isNaN(selectedPackExactReg) && selectedPackExactReg > 0) {
+                currentReg = selectedPackExactReg;
+            }
+        }
 
         const priceDisplay = document.getElementById('product-price-display');
         if (priceDisplay) {
@@ -847,6 +856,8 @@ function initComboBuilder() {
             selectedPackSizeCode = swatchEl.getAttribute('data-size-code');
             selectedPackDelta = parseFloat(swatchEl.getAttribute('data-surcharge')) || 0;
             selectedPackRegDelta = parseFloat(swatchEl.getAttribute('data-regular-surcharge')) || 0;
+            selectedPackExactOffer = swatchEl.getAttribute('data-exact-offer') ? parseFloat(swatchEl.getAttribute('data-exact-offer')) : null;
+            selectedPackExactReg = swatchEl.getAttribute('data-exact-regular') ? parseFloat(swatchEl.getAttribute('data-exact-regular')) : null;
 
             const packSizeLabel = document.getElementById('combo-selected-pack-size');
             if (packSizeLabel) {

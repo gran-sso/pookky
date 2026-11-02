@@ -72,16 +72,24 @@ try {
     $combo_size_mode = $product['combo_size_mode'] ?? 'flexible';
     $combo_custom_surcharges = [];
     $combo_custom_regular_surcharges = [];
+    $combo_direct_offers = [];
+    $combo_direct_regulars = [];
     $combo_pack_sizes = [];
 
     if ($is_combo) {
-        // Fetch custom size surcharges for this combo (both Offer extra and MRP extra)
-        $sc_stmt = $pdo->prepare("SELECT size_id, surcharge_amount, regular_surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
+        // Fetch custom size surcharges & direct exact rates for this combo
+        $sc_stmt = $pdo->prepare("SELECT size_id, surcharge_amount, regular_surcharge_amount, custom_offer_price, custom_regular_price FROM combo_size_surcharges WHERE combo_product_id = ?");
         $sc_stmt->execute([$product_id]);
         $sc_rows = $sc_stmt->fetchAll();
         foreach ($sc_rows as $sr) {
             $combo_custom_surcharges[(int)$sr['size_id']] = (float)$sr['surcharge_amount'];
             $combo_custom_regular_surcharges[(int)$sr['size_id']] = (float)$sr['regular_surcharge_amount'];
+            if ($sr['custom_offer_price'] !== null) {
+                $combo_direct_offers[(int)$sr['size_id']] = (float)$sr['custom_offer_price'];
+            }
+            if ($sr['custom_regular_price'] !== null) {
+                $combo_direct_regulars[(int)$sr['size_id']] = (float)$sr['custom_regular_price'];
+            }
         }
 
         $comp_stmt = $pdo->prepare("
@@ -146,7 +154,7 @@ try {
                         $delta = 0.00;
                         if ($combo_pricing_mode === 'flat') {
                             $delta = 0.00;
-                        } elseif ($combo_pricing_mode === 'custom') {
+                        } elseif ($combo_pricing_mode === 'custom' || $combo_pricing_mode === 'direct') {
                             $delta = (float)($combo_custom_surcharges[$v['size_id']] ?? 0.00);
                         } else {
                             // 'inherit' mode: calculate difference from subproduct base price
@@ -170,6 +178,10 @@ try {
 
         // If same_size mode, compute unique available pack sizes across components
         if ($combo_size_mode === 'same_size') {
+            $base_combo_off = (!empty($product['offer_price']) && (float)$product['offer_price'] > 0) ? (float)$product['offer_price'] : null;
+            $base_combo_reg = (float)$product['regular_price'];
+            $base_combo_selling = $base_combo_off !== null ? $base_combo_off : $base_combo_reg;
+
             $pack_sizes_map = [];
             foreach ($combo_components as $c_item) {
                 foreach ($c_item['products'] as $cp) {
@@ -185,12 +197,18 @@ try {
                                 $surcharge = 0.00;
                                 $reg_surcharge = 0.00;
                             }
+
+                            $exact_offer = isset($combo_direct_offers[$s_id]) ? (float)$combo_direct_offers[$s_id] : ($base_combo_selling + $surcharge);
+                            $exact_reg = isset($combo_direct_regulars[$s_id]) ? (float)$combo_direct_regulars[$s_id] : ($base_combo_reg + $reg_surcharge);
+
                             $pack_sizes_map[$s_id] = [
                                 'id' => $s_id,
                                 'code' => $v['size_code'],
                                 'name' => $v['size_name'],
                                 'price_delta' => $surcharge,
                                 'regular_price_delta' => $reg_surcharge,
+                                'exact_offer_price' => $exact_offer,
+                                'exact_regular_price' => $exact_reg,
                                 'total_stock' => (int)$v['stock']
                             ];
                         } else {
@@ -446,9 +464,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                                               data-size-code="<?php echo e($sz['code']); ?>"
                                               data-surcharge="<?php echo $sz['price_delta']; ?>"
                                               data-regular-surcharge="<?php echo $sz['regular_price_delta']; ?>"
+                                              data-exact-offer="<?php echo $sz['exact_offer_price'] ?? ''; ?>"
+                                              data-exact-regular="<?php echo $sz['exact_regular_price'] ?? ''; ?>"
                                               style="cursor: pointer;">
                                             <span><?php echo e($sz['code']); ?></span>
-                                            <?php if ($sz['price_delta'] > 0): ?>
+                                            <?php if ($combo_pricing_mode === 'direct' && $sz['price_delta'] > 0): ?>
+                                                <span class="badge bg-secondary-subtle text-dark border p-0 px-1" style="font-size: 9px; line-height: 1.2;">₹<?php echo (int)round($sz['exact_offer_price']); ?></span>
+                                            <?php elseif ($sz['price_delta'] > 0): ?>
                                                 <span class="badge bg-danger-subtle text-danger border p-0 px-1" style="font-size: 9px; line-height: 1.2;">+₹<?php echo (int)round($sz['price_delta']); ?></span>
                                             <?php endif; ?>
                                         </span>

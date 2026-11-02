@@ -141,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Check combo pricing strategy
             $combo_pricing_mode = $combo_product['combo_pricing_mode'] ?? 'inherit';
             $combo_custom_surcharges = [];
-            if ($combo_pricing_mode === 'custom') {
+            if ($combo_pricing_mode === 'custom' || $combo_pricing_mode === 'direct') {
                 $sc_stmt = $pdo->prepare("SELECT size_id, surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
                 $sc_stmt->execute([$combo_product_id]);
                 $combo_custom_surcharges = $sc_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
@@ -215,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $delta = 0.00;
                 if ($combo_pricing_mode === 'flat') {
                     $delta = 0.00;
-                } elseif ($combo_pricing_mode === 'custom') {
+                } elseif ($combo_pricing_mode === 'custom' || $combo_pricing_mode === 'direct') {
                     $delta = (float)($combo_custom_surcharges[$var_info['size_id']] ?? 0.00);
                 } else {
                     // 'inherit' mode
@@ -250,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 $pack_surcharge = 0.00;
-                if ($combo_pricing_mode === 'custom') {
+                if ($combo_pricing_mode === 'custom' || $combo_pricing_mode === 'direct') {
                     $pack_surcharge = (float)($combo_custom_surcharges[$pack_size_id] ?? 0.00);
                 } elseif ($combo_pricing_mode === 'inherit') {
                     $pack_surcharge = (float)($combo_config[0]['price_delta'] ?? 0.00);
