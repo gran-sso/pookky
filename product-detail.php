@@ -69,14 +69,19 @@ try {
     $is_combo = ($product['product_type'] ?? 'single') === 'combo';
     $combo_components = [];
     $combo_pricing_mode = $product['combo_pricing_mode'] ?? 'inherit';
+    $combo_size_mode = $product['combo_size_mode'] ?? 'flexible';
+    $combo_custom_surcharges = [];
+    $combo_custom_regular_surcharges = [];
+    $combo_pack_sizes = [];
 
     if ($is_combo) {
-        // If custom mode, fetch custom size surcharges for this combo
-        $combo_custom_surcharges = [];
-        if ($combo_pricing_mode === 'custom') {
-            $sc_stmt = $pdo->prepare("SELECT size_id, surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
-            $sc_stmt->execute([$product_id]);
-            $combo_custom_surcharges = $sc_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+        // Fetch custom size surcharges for this combo (both Offer extra and MRP extra)
+        $sc_stmt = $pdo->prepare("SELECT size_id, surcharge_amount, regular_surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
+        $sc_stmt->execute([$product_id]);
+        $sc_rows = $sc_stmt->fetchAll();
+        foreach ($sc_rows as $sr) {
+            $combo_custom_surcharges[(int)$sr['size_id']] = (float)$sr['surcharge_amount'];
+            $combo_custom_regular_surcharges[(int)$sr['size_id']] = (float)$sr['regular_surcharge_amount'];
         }
 
         $comp_stmt = $pdo->prepare("
@@ -131,7 +136,7 @@ try {
                 $var_rows = $v_stmt->fetchAll();
 
                 if (!empty($var_rows)) {
-                    // Compute Model D size delta for each variant
+                    // Compute size delta for each variant
                     foreach ($var_rows as &$v) {
                         $v_off = ($v['offer_price'] !== null && (float)$v['offer_price'] > 0) ? (float)$v['offer_price'] : null;
                         $v_reg = ($v['regular_price'] !== null && (float)$v['regular_price'] > 0) ? (float)$v['regular_price'] : (float)$cp['regular_price'];
@@ -161,6 +166,41 @@ try {
 
             $comp['products'] = $loaded_products;
             $combo_components[] = $comp;
+        }
+
+        // If same_size mode, compute unique available pack sizes across components
+        if ($combo_size_mode === 'same_size') {
+            $pack_sizes_map = [];
+            foreach ($combo_components as $c_item) {
+                foreach ($c_item['products'] as $cp) {
+                    foreach ($cp['variants'] as $v) {
+                        $s_id = (int)$v['size_id'];
+                        if (!isset($pack_sizes_map[$s_id])) {
+                            $surcharge = (float)($combo_custom_surcharges[$s_id] ?? 0.00);
+                            $reg_surcharge = (float)($combo_custom_regular_surcharges[$s_id] ?? 0.00);
+                            if ($combo_pricing_mode === 'inherit') {
+                                $surcharge = (float)($v['price_delta'] ?? 0.00);
+                                $reg_surcharge = (float)($v['price_delta'] ?? 0.00);
+                            } elseif ($combo_pricing_mode === 'flat') {
+                                $surcharge = 0.00;
+                                $reg_surcharge = 0.00;
+                            }
+                            $pack_sizes_map[$s_id] = [
+                                'id' => $s_id,
+                                'code' => $v['size_code'],
+                                'name' => $v['size_name'],
+                                'price_delta' => $surcharge,
+                                'regular_price_delta' => $reg_surcharge,
+                                'total_stock' => (int)$v['stock']
+                            ];
+                        } else {
+                            $pack_sizes_map[$s_id]['total_stock'] += (int)$v['stock'];
+                        }
+                    }
+                }
+            }
+            sort_sizes($pack_sizes_map);
+            $combo_pack_sizes = array_values($pack_sizes_map);
         }
     }
 
@@ -389,6 +429,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                     <form id="combo-purchase-form">
                         <input type="hidden" name="combo_product_id" id="combo-product-id" value="<?php echo $product_id; ?>">
 
+                        <?php if ($combo_size_mode === 'same_size' && !empty($combo_pack_sizes)): ?>
+                            <!-- Unified Size Selector for Same-Size Multi-Color Pack -->
+                            <div class="combo-unified-size-card p-3 mb-4 rounded-3 border bg-light-subtle shadow-xs" id="combo-pack-size-container">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label small fw-bold text-dark text-uppercase mb-0">
+                                        <i class="bi bi-rulers text-rose me-1"></i> Choose Pack Size: <span id="combo-selected-pack-size" class="text-rose fw-bold"></span>
+                                    </label>
+                                    <a href="#" class="small text-rose" data-bs-toggle="modal" data-bs-target="#sizeGuideModal"><i class="bi bi-rulers"></i> Size Chart</a>
+                                </div>
+                                <p class="small text-muted mb-2" style="font-size: 12px;">All pieces in this set will be tailored in your chosen size:</p>
+                                <div class="d-flex align-items-center gap-2 flex-wrap" id="combo-pack-size-swatches">
+                                    <?php foreach ($combo_pack_sizes as $sz): ?>
+                                        <span class="swatch-size combo-pack-size-swatch d-inline-flex align-items-center gap-1" 
+                                              data-size-id="<?php echo $sz['id']; ?>"
+                                              data-size-code="<?php echo e($sz['code']); ?>"
+                                              data-surcharge="<?php echo $sz['price_delta']; ?>"
+                                              data-regular-surcharge="<?php echo $sz['regular_price_delta']; ?>"
+                                              style="cursor: pointer;">
+                                            <span><?php echo e($sz['code']); ?></span>
+                                            <?php if ($sz['price_delta'] > 0): ?>
+                                                <span class="badge bg-danger-subtle text-danger border p-0 px-1" style="font-size: 9px; line-height: 1.2;">+₹<?php echo (int)round($sz['price_delta']); ?></span>
+                                            <?php endif; ?>
+                                        </span>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                         <?php foreach ($combo_components as $c_idx => $comp): ?>
                             <div class="combo-step-card" data-component-id="<?php echo $comp['id']; ?>" id="step-card-<?php echo $comp['id']; ?>">
                                 <div class="combo-step-header">
@@ -441,7 +509,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                                             </div>
                                         </div>
 
-                                        <!-- Sizes -->
+                                        <!-- Sizes (Shown per piece only if flexible mode) -->
+                                        <?php if ($combo_size_mode !== 'same_size'): ?>
                                         <div class="mb-3">
                                             <div class="d-flex justify-content-between align-items-center mb-1">
                                                 <label class="form-label small fw-bold text-muted text-uppercase mb-0">Size: <span class="selected-size-label text-dark fw-normal"></span></label>
@@ -464,6 +533,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
                                                 <?php endforeach; ?>
                                             </div>
                                         </div>
+                                        <?php endif; ?>
 
                                         <!-- Live Item Status Feedback -->
                                         <div class="combo-item-status small mt-2" id="status-comp-<?php echo $comp['id']; ?>">
@@ -918,6 +988,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
 <script>
     window.isComboProduct = <?php echo $is_combo ? 'true' : 'false'; ?>;
     window.comboPricingMode = "<?php echo e($combo_pricing_mode); ?>";
+    window.comboSizeMode = "<?php echo e($combo_size_mode); ?>";
+    window.comboPackSizes = <?php echo json_encode($combo_pack_sizes); ?>;
     window.defaultProductPrice = "<?php echo format_price($product['offer_price'] ?? $product['regular_price']); ?>";
     window.productMasterPricing = {
         regular_price: <?php echo (float)$product['regular_price']; ?>,

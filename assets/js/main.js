@@ -635,6 +635,12 @@ function initComboBuilder() {
     const comboQtyInput = document.getElementById('combo-qty');
     const comboProductIdInput = document.getElementById('combo-product-id');
 
+    const isSameSizeMode = (typeof window.comboSizeMode !== 'undefined' && window.comboSizeMode === 'same_size');
+    let selectedPackSizeId = null;
+    let selectedPackSizeCode = null;
+    let selectedPackDelta = 0;
+    let selectedPackRegDelta = 0;
+
     // Selection tracking per component ID: { [compId]: { colorId, sizeId, variantId, sku, sizeCode, colorName, stock } }
     const selections = {};
 
@@ -653,6 +659,10 @@ function initComboBuilder() {
     function checkAllComponentsSelected() {
         let allSelected = true;
         let minStock = 999999;
+
+        if (isSameSizeMode && !selectedPackSizeId) {
+            allSelected = false;
+        }
 
         for (const comp of comboComponentsData) {
             const sel = selections[comp.id];
@@ -697,7 +707,11 @@ function initComboBuilder() {
 
         if (!sel.colorId || !sel.sizeId) {
             if (statusEl) {
-                statusEl.innerHTML = `<span class="text-muted"><i class="bi bi-info-circle me-1"></i> Choose ${!sel.colorId ? 'Color' : 'Size'} above</span>`;
+                if (isSameSizeMode) {
+                    statusEl.innerHTML = `<span class="text-muted"><i class="bi bi-palette me-1"></i> Choose Color for this piece</span>`;
+                } else {
+                    statusEl.innerHTML = `<span class="text-muted"><i class="bi bi-info-circle me-1"></i> Choose ${!sel.colorId ? 'Color' : 'Size'} above</span>`;
+                }
             }
             if (summaryTextEl) {
                 summaryTextEl.textContent = 'Pending Selection';
@@ -705,7 +719,7 @@ function initComboBuilder() {
             }
             if (hiddenInput) hiddenInput.value = '';
             sel.variantId = null;
-            sel.priceDelta = 0;
+            if (!isSameSizeMode) sel.priceDelta = 0;
             updateComboTotalPrice();
             checkAllComponentsSelected();
             return;
@@ -720,25 +734,31 @@ function initComboBuilder() {
             sel.sizeCode = matched.size_code;
             sel.colorName = matched.color_name;
             sel.stock = parseInt(matched.stock);
-            sel.priceDelta = parseFloat(matched.price_delta) || 0;
+            sel.priceDelta = isSameSizeMode 
+                ? (compId == comboComponentsData[0].id ? selectedPackDelta : 0) 
+                : (parseFloat(matched.price_delta) || 0);
             sel.effectivePrice = parseFloat(matched.effective_price) || 0;
 
             if (hiddenInput) hiddenInput.value = matched.variant_id;
 
             if (statusEl) {
-                const surchargeNote = sel.priceDelta > 0 ? ` &bull; <span class="text-danger fw-semibold">+₹${sel.priceDelta.toFixed(2)} size adjustment</span>` : '';
+                const surchargeNote = (!isSameSizeMode && sel.priceDelta > 0) ? ` &bull; <span class="text-danger fw-semibold">+₹${sel.priceDelta.toFixed(2)} size adjustment</span>` : '';
                 statusEl.innerHTML = `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> In Stock (${matched.stock} available)${surchargeNote}</span>`;
             }
 
             if (summaryTextEl) {
-                const deltaBadge = sel.priceDelta > 0 ? ` <span class="badge bg-danger-subtle text-danger border">+₹${sel.priceDelta.toFixed(2)}</span>` : '';
-                summaryTextEl.innerHTML = `<span class="badge bg-success-subtle text-success border me-1">${matched.size_code}${deltaBadge}</span> <span class="badge bg-light text-dark border">${matched.color_name}</span>`;
+                if (isSameSizeMode) {
+                    summaryTextEl.innerHTML = `<span class="badge bg-light text-dark border"><i class="bi bi-palette me-1 text-rose"></i> ${matched.color_name}</span>`;
+                } else {
+                    const deltaBadge = sel.priceDelta > 0 ? ` <span class="badge bg-danger-subtle text-danger border">+₹${sel.priceDelta.toFixed(2)}</span>` : '';
+                    summaryTextEl.innerHTML = `<span class="badge bg-success-subtle text-success border me-1">${matched.size_code}${deltaBadge}</span> <span class="badge bg-light text-dark border">${matched.color_name}</span>`;
+                }
                 summaryTextEl.className = 'item-choice';
             }
         } else {
             sel.variantId = null;
             sel.stock = 0;
-            sel.priceDelta = 0;
+            if (!isSameSizeMode) sel.priceDelta = 0;
             if (hiddenInput) hiddenInput.value = '';
 
             if (statusEl) {
@@ -758,11 +778,19 @@ function initComboBuilder() {
     // Live Bundle Price Recalculation (Model D Hybrid)
     function updateComboTotalPrice() {
         let totalDelta = 0;
-        for (const comp of comboComponentsData) {
-            const sel = selections[comp.id];
-            if (sel && sel.priceDelta) {
-                totalDelta += sel.priceDelta;
+        let totalRegDelta = 0;
+
+        if (isSameSizeMode) {
+            totalDelta = selectedPackDelta;
+            totalRegDelta = selectedPackRegDelta > 0 ? selectedPackRegDelta : selectedPackDelta;
+        } else {
+            for (const comp of comboComponentsData) {
+                const sel = selections[comp.id];
+                if (sel && sel.priceDelta) {
+                    totalDelta += sel.priceDelta;
+                }
             }
+            totalRegDelta = totalDelta;
         }
 
         const masterReg = (window.productMasterPricing && window.productMasterPricing.regular_price) ? parseFloat(window.productMasterPricing.regular_price) : 0;
@@ -770,7 +798,7 @@ function initComboBuilder() {
 
         const baseSelling = masterOff !== null ? masterOff : masterReg;
         const currentSelling = baseSelling + totalDelta;
-        const currentReg = masterReg + totalDelta;
+        const currentReg = masterReg + totalRegDelta;
 
         const priceDisplay = document.getElementById('product-price-display');
         if (priceDisplay) {
@@ -805,9 +833,81 @@ function initComboBuilder() {
         }
     }
 
+    // Same-Size Pack: Unified Size Swatch Click Handler
+    if (isSameSizeMode) {
+        const packSizeSwatches = document.querySelectorAll('.combo-pack-size-swatch');
+
+        function applyPackSize(swatchEl) {
+            if (!swatchEl || swatchEl.classList.contains('disabled')) return;
+
+            packSizeSwatches.forEach(s => s.classList.remove('active'));
+            swatchEl.classList.add('active');
+
+            selectedPackSizeId = swatchEl.getAttribute('data-size-id');
+            selectedPackSizeCode = swatchEl.getAttribute('data-size-code');
+            selectedPackDelta = parseFloat(swatchEl.getAttribute('data-surcharge')) || 0;
+            selectedPackRegDelta = parseFloat(swatchEl.getAttribute('data-regular-surcharge')) || 0;
+
+            const packSizeLabel = document.getElementById('combo-selected-pack-size');
+            if (packSizeLabel) {
+                packSizeLabel.textContent = selectedPackSizeCode;
+            }
+
+            // Update each component with the uniform size
+            comboComponentsData.forEach(comp => {
+                selections[comp.id].sizeId = selectedPackSizeId;
+                selections[comp.id].sizeCode = selectedPackSizeCode;
+                selections[comp.id].priceDelta = (comp.id == comboComponentsData[0].id) ? selectedPackDelta : 0;
+
+                const card = document.getElementById('step-card-' + comp.id);
+                if (card) {
+                    const prod = comp.products[0] || null;
+                    if (prod) {
+                        const availableColorsForSize = prod.variants
+                            .filter(v => v.size_id == selectedPackSizeId && parseInt(v.stock) > 0)
+                            .map(v => parseInt(v.color_id));
+
+                        card.querySelectorAll('.combo-swatch-color').forEach(cSwatch => {
+                            const cId = parseInt(cSwatch.getAttribute('data-color-id'));
+                            if (availableColorsForSize.includes(cId)) {
+                                cSwatch.classList.remove('disabled');
+                            } else {
+                                cSwatch.classList.add('disabled');
+                                if (selections[comp.id].colorId == cId) {
+                                    cSwatch.classList.remove('active');
+                                    selections[comp.id].colorId = null;
+                                }
+                            }
+                        });
+                    }
+                }
+                updateComponentVariant(comp.id, comp.products[0]?.id);
+            });
+
+            updateComboTotalPrice();
+            checkAllComponentsSelected();
+        }
+
+        packSizeSwatches.forEach(swatch => {
+            swatch.addEventListener('click', function() {
+                applyPackSize(this);
+            });
+        });
+
+        // Auto-select first available pack size on load
+        if (packSizeSwatches.length > 0) {
+            const firstInStockSize = Array.from(packSizeSwatches).find(s => !s.classList.contains('disabled')) || packSizeSwatches[0];
+            if (firstInStockSize) {
+                applyPackSize(firstInStockSize);
+            }
+        }
+    }
+
     // Color Swatch Clicks for Combo
     document.querySelectorAll('.combo-swatch-color').forEach(swatch => {
         swatch.addEventListener('click', function() {
+            if (this.classList.contains('disabled')) return;
+
             const compId = this.getAttribute('data-component-id');
             const prodId = this.getAttribute('data-product-id');
             const colorId = this.getAttribute('data-color-id');
@@ -822,27 +922,29 @@ function initComboBuilder() {
                 const label = card.querySelector('.selected-color-label');
                 if (label) label.textContent = colorName;
 
-                // Find eligible product variants
-                const comp = comboComponentsData.find(c => c.id == compId);
-                const prod = comp ? comp.products.find(p => p.id == prodId) : null;
+                // If in flexible mode, filter sizes for this color
+                if (!isSameSizeMode) {
+                    const comp = comboComponentsData.find(c => c.id == compId);
+                    const prod = comp ? comp.products.find(p => p.id == prodId) : null;
 
-                if (prod) {
-                    const availableSizesForColor = prod.variants
-                        .filter(v => v.color_id == colorId && parseInt(v.stock) > 0)
-                        .map(v => parseInt(v.size_id));
+                    if (prod) {
+                        const availableSizesForColor = prod.variants
+                            .filter(v => v.color_id == colorId && parseInt(v.stock) > 0)
+                            .map(v => parseInt(v.size_id));
 
-                    card.querySelectorAll('.combo-swatch-size').forEach(sizeSwatch => {
-                        const sId = parseInt(sizeSwatch.getAttribute('data-size-id'));
-                        if (availableSizesForColor.includes(sId)) {
-                            sizeSwatch.classList.remove('disabled');
-                        } else {
-                            sizeSwatch.classList.add('disabled');
-                            if (selections[compId].sizeId == sId) {
-                                sizeSwatch.classList.remove('active');
-                                selections[compId].sizeId = null;
+                        card.querySelectorAll('.combo-swatch-size').forEach(sizeSwatch => {
+                            const sId = parseInt(sizeSwatch.getAttribute('data-size-id'));
+                            if (availableSizesForColor.includes(sId)) {
+                                sizeSwatch.classList.remove('disabled');
+                            } else {
+                                sizeSwatch.classList.add('disabled');
+                                if (selections[compId].sizeId == sId) {
+                                    sizeSwatch.classList.remove('active');
+                                    selections[compId].sizeId = null;
+                                }
                             }
-                        }
-                    });
+                        });
+                    }
                 }
             }
 
@@ -852,7 +954,7 @@ function initComboBuilder() {
         });
     });
 
-    // Size Swatch Clicks for Combo
+    // Size Swatch Clicks for Combo (Flexible Mode only)
     document.querySelectorAll('.combo-swatch-size').forEach(swatch => {
         swatch.addEventListener('click', function() {
             if (this.classList.contains('disabled')) return;

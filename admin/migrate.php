@@ -140,6 +140,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
                 ['order_items', 'combo_config', 'TEXT DEFAULT NULL'],
                 ['products', 'product_type', 'ENUM("single", "combo") NOT NULL DEFAULT "single"'],
                 ['products', 'combo_pricing_mode', 'ENUM("inherit", "custom", "flat") DEFAULT "inherit"'],
+                ['products', 'combo_size_mode', 'ENUM("flexible", "same_size") NOT NULL DEFAULT "flexible"'],
+                ['combo_size_surcharges', 'regular_surcharge_amount', 'DECIMAL(10,2) NOT NULL DEFAULT 0.00'],
                 ['orders', 'transaction_id', 'VARCHAR(100) DEFAULT NULL'],
                 ['email_otps', 'attempts', 'INT DEFAULT 0']
             ];

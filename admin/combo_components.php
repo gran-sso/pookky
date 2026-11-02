@@ -93,32 +93,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_pricing_mode']))
             $mode = 'inherit';
         }
 
+        $size_mode = $_POST['combo_size_mode'] ?? 'flexible';
+        if (!in_array($size_mode, ['flexible', 'same_size'])) {
+            $size_mode = 'flexible';
+        }
+
         try {
             $pdo->beginTransaction();
 
-            $up = $pdo->prepare("UPDATE products SET combo_pricing_mode = ? WHERE id = ?");
-            $up->execute([$mode, $combo_id]);
+            $up = $pdo->prepare("UPDATE products SET combo_pricing_mode = ?, combo_size_mode = ? WHERE id = ?");
+            $up->execute([$mode, $size_mode, $combo_id]);
 
             // Save custom surcharges if in custom mode
             $del = $pdo->prepare("DELETE FROM combo_size_surcharges WHERE combo_product_id = ?");
             $del->execute([$combo_id]);
 
-            if ($mode === 'custom' && isset($_POST['surcharges']) && is_array($_POST['surcharges'])) {
+            if ($mode === 'custom') {
+                $surcharges = $_POST['surcharges'] ?? [];
+                $regular_surcharges = $_POST['regular_surcharges'] ?? [];
+
                 $ins_sc = $pdo->prepare("
-                    INSERT INTO combo_size_surcharges (combo_product_id, component_id, size_id, surcharge_amount)
-                    VALUES (?, 0, ?, ?)
+                    INSERT INTO combo_size_surcharges (combo_product_id, component_id, size_id, surcharge_amount, regular_surcharge_amount)
+                    VALUES (?, 0, ?, ?, ?)
                 ");
-                foreach ($_POST['surcharges'] as $s_id => $amt) {
-                    $amt_val = (float)$amt;
-                    if ($amt_val > 0) {
-                        $ins_sc->execute([$combo_id, (int)$s_id, $amt_val]);
+                $all_s_ids = array_unique(array_merge(array_keys($surcharges), array_keys($regular_surcharges)));
+                foreach ($all_s_ids as $s_id) {
+                    $amt_val = isset($surcharges[$s_id]) && $surcharges[$s_id] !== '' ? (float)$surcharges[$s_id] : 0.00;
+                    $reg_amt_val = isset($regular_surcharges[$s_id]) && $regular_surcharges[$s_id] !== '' ? (float)$regular_surcharges[$s_id] : 0.00;
+                    if ($amt_val > 0 || $reg_amt_val > 0) {
+                        $ins_sc->execute([$combo_id, (int)$s_id, $amt_val, $reg_amt_val]);
                     }
                 }
             }
 
             $pdo->commit();
-            log_admin_action($current_admin_id, "Updated combo size pricing strategy to '{$mode}' for combo ID: {$combo_id}");
-            set_flash_message('success', 'Size pricing strategy saved successfully!');
+            log_admin_action($current_admin_id, "Updated combo size pricing strategy to '{$mode}' (sizing mode: '{$size_mode}') for combo ID: {$combo_id}");
+            set_flash_message('success', 'Size pricing strategy and sizing mode saved successfully!');
             header('Location: combo_components.php?combo_id=' . $combo_id);
             exit;
         } catch (PDOException $e) {
@@ -145,11 +155,18 @@ $comp_stmt->execute([$combo_id]);
 $components = $comp_stmt->fetchAll();
 
 $combo_pricing_mode = $combo_product['combo_pricing_mode'] ?? 'inherit';
+$combo_size_mode = $combo_product['combo_size_mode'] ?? 'flexible';
 
 // Fetch existing custom size surcharges for this combo
-$surcharges_stmt = $pdo->prepare("SELECT size_id, surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
+$surcharges_stmt = $pdo->prepare("SELECT size_id, surcharge_amount, regular_surcharge_amount FROM combo_size_surcharges WHERE combo_product_id = ?");
 $surcharges_stmt->execute([$combo_id]);
-$existing_surcharges = $surcharges_stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+$sc_rows = $surcharges_stmt->fetchAll();
+$existing_surcharges = [];
+$existing_regular_surcharges = [];
+foreach ($sc_rows as $row) {
+    $existing_surcharges[$row['size_id']] = $row['surcharge_amount'];
+    $existing_regular_surcharges[$row['size_id']] = $row['regular_surcharge_amount'];
+}
 
 // Fetch all sizes grouped by category_type for custom surcharge configuration
 $sizes_stmt = $pdo->query("SELECT * FROM sizes ORDER BY category_type ASC, id ASC");
@@ -206,6 +223,38 @@ foreach ($all_sizes as $sz) {
     <form action="combo_components.php?combo_id=<?php echo $combo_id; ?>" method="POST" id="pricingModeForm">
         <?php echo csrf_field(); ?>
 
+        <!-- Customer Sizing Selection Mode -->
+        <div class="mb-4 p-3 border rounded-3 bg-light">
+            <label class="fw-bold text-dark mb-1 d-block">
+                <i class="bi bi-aspect-ratio text-rose me-1"></i> Customer Sizing Experience
+            </label>
+            <p class="small text-muted mb-3">Choose whether customer selects sizes individually per piece, or picks one uniform size for the whole pack.</p>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="card h-100 p-3 border rounded-3 cursor-pointer <?php echo $combo_size_mode === 'flexible' ? 'border-primary bg-white shadow-sm' : 'bg-white'; ?>" style="cursor: pointer;">
+                        <div class="d-flex align-items-start gap-2">
+                            <input class="form-check-input mt-1" type="radio" name="combo_size_mode" value="flexible" <?php echo $combo_size_mode === 'flexible' ? 'checked' : ''; ?>>
+                            <div>
+                                <span class="fw-bold text-dark d-block">Flexible Sizes (Multi-Product Set)</span>
+                                <small class="text-muted">Customer selects independent sizes for each piece (e.g., Bra 34B + Matching Panty M).</small>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="card h-100 p-3 border rounded-3 cursor-pointer <?php echo $combo_size_mode === 'same_size' ? 'border-primary bg-white shadow-sm' : 'bg-white'; ?>" style="cursor: pointer;">
+                        <div class="d-flex align-items-start gap-2">
+                            <input class="form-check-input mt-1" type="radio" name="combo_size_mode" value="same_size" <?php echo $combo_size_mode === 'same_size' ? 'checked' : ''; ?>>
+                            <div>
+                                <span class="fw-bold text-dark d-block">Same-Size Multi-Color Pack (e.g. 3-Pack Bras)</span>
+                                <small class="text-muted">Customer chooses one uniform size for the pack, and then selects colors for each piece.</small>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
         <div class="row g-3 mb-4">
             <!-- Mode 1: Inherit -->
             <div class="col-12 col-md-4">
@@ -236,7 +285,7 @@ foreach ($all_sizes as $sz) {
                                 <span class="badge bg-primary-subtle text-primary small" style="font-size: 10px;">Overrides</span>
                             </div>
                             <p class="small text-muted mb-0 mt-1">
-                                Define exact extra charges for specific sizes inside this bundle only (e.g. charge a discounted +₹30 for 44B instead of the standard +₹50).
+                                Define exact extra charges for specific sizes inside this bundle only (e.g. charge a discounted +₹26 for 42 or +₹43 for 44).
                             </p>
                         </div>
                     </div>
@@ -284,16 +333,29 @@ foreach ($all_sizes as $sz) {
                     <div class="tab-pane fade <?php echo $tab_idx === 1 ? 'show active' : ''; ?>" id="tab-pane-<?php echo e(slugify($cat_name)); ?>" role="tabpanel">
                         <div class="row g-2">
                             <?php foreach ($cat_sizes as $sz): ?>
-                                <?php $current_surcharge = $existing_surcharges[$sz['id']] ?? ''; ?>
+                                <?php 
+                                    $current_surcharge = $existing_surcharges[$sz['id']] ?? ''; 
+                                    $current_reg_surcharge = $existing_regular_surcharges[$sz['id']] ?? ''; 
+                                ?>
                                 <div class="col-6 col-sm-4 col-md-3 col-lg-2">
                                     <div class="p-2 border rounded bg-white">
                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span class="fw-bold text-dark" style="font-size: 13px;"><?php echo e($sz['size_code']); ?></span>
                                             <span class="text-muted" style="font-size: 11px;"><?php echo e($sz['size_name']); ?></span>
                                         </div>
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text px-1 text-muted" style="font-size: 11px;">+₹</span>
-                                            <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end" name="surcharges[<?php echo $sz['id']; ?>]" value="<?php echo e($current_surcharge); ?>" placeholder="0.00">
+                                        <div class="mb-1">
+                                            <label class="form-label text-muted mb-0" style="font-size: 10px;">Selling Extra</label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text px-1 text-muted" style="font-size: 11px;">+₹</span>
+                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end" name="surcharges[<?php echo $sz['id']; ?>]" value="<?php echo e($current_surcharge); ?>" placeholder="0.00">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label class="form-label text-muted mb-0" style="font-size: 10px;">MRP Extra</label>
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text px-1 text-muted" style="font-size: 11px;">+₹</span>
+                                                <input type="number" step="0.01" min="0" class="form-control form-control-sm px-1 text-end" name="regular_surcharges[<?php echo $sz['id']; ?>]" value="<?php echo e($current_reg_surcharge); ?>" placeholder="0.00">
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

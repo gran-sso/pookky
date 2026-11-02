@@ -237,6 +237,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ];
             }
 
+            // In same_size mode, validate uniform sizing and apply pack surcharge once
+            $combo_size_mode = $combo_product['combo_size_mode'] ?? 'flexible';
+            if ($combo_size_mode === 'same_size' && !empty($combo_config)) {
+                $pack_size_id = null;
+                foreach ($combo_config as $cfg) {
+                    if ($pack_size_id === null) {
+                        $pack_size_id = $cfg['size_id'];
+                    } elseif ($cfg['size_id'] !== $pack_size_id) {
+                        json_response('error', 'All items in this pack must have the same size.');
+                    }
+                }
+
+                $pack_surcharge = 0.00;
+                if ($combo_pricing_mode === 'custom') {
+                    $pack_surcharge = (float)($combo_custom_surcharges[$pack_size_id] ?? 0.00);
+                } elseif ($combo_pricing_mode === 'inherit') {
+                    $pack_surcharge = (float)($combo_config[0]['price_delta'] ?? 0.00);
+                }
+
+                foreach ($combo_config as $idx => &$cfg) {
+                    $cfg['price_delta'] = ($idx === 0) ? $pack_surcharge : 0.00;
+                }
+                unset($cfg);
+            }
+
             $config_json = json_encode($combo_config);
 
             // Check if matching combo already in cart
