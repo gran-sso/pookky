@@ -68,7 +68,7 @@ try {
         FROM products p 
         JOIN categories c ON p.category_id = c.id 
         WHERE p.status = 1 AND p.product_type = 'combo'
-        ORDER BY p.is_featured DESC, p.id DESC LIMIT 4
+        ORDER BY p.is_featured DESC, p.id DESC LIMIT 12
     ");
     $combo_products = $c_stmt->fetchAll();
 
@@ -246,7 +246,7 @@ try {
 <?php if (!empty($combo_products)): ?>
 <section class="py-4 py-md-5 combo-spotlight-section border-top border-bottom" style="background: linear-gradient(180deg, #fff5f8 0%, #ffffff 100%);">
     <div class="container">
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-end mb-4 gap-3">
             <div>
                 <span class="badge bg-purple rounded-pill px-3 py-1 mb-2 shadow-sm" style="font-size: 11px; letter-spacing: 0.5px;">
                     <i class="bi bi-stars me-1"></i> SUPER SAVER DEALS
@@ -254,61 +254,75 @@ try {
                 <h2 class="section-title mb-1">Value Bundles & Combo Sets</h2>
                 <p class="text-muted mb-0 brand-accent-tag"><?php echo e(get_setting('home_tagline_combos', 'Curate your favorite matching pieces & save more together')); ?></p>
             </div>
-            <a href="products.php?type=combo" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2 mt-3 mt-md-0 align-self-start align-self-md-auto">
-                Explore All Bundles <i class="bi bi-arrow-right ms-1"></i>
-            </a>
+            
+            <div class="d-flex align-items-center gap-2 gap-md-3 align-self-stretch align-self-md-auto justify-content-between justify-content-md-end">
+                <!-- Navigation Arrows -->
+                <div class="slider-nav-arrows d-flex align-items-center gap-2">
+                    <button type="button" class="slider-arrow-btn slider-prev" data-target="#comboScrollTrack" aria-label="Previous combos" title="Previous" disabled>
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button type="button" class="slider-arrow-btn slider-next" data-target="#comboScrollTrack" aria-label="Next combos" title="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                </div>
+                <a href="products.php?type=combo" class="btn btn-sm btn-outline-dark rounded-pill px-3 py-2">
+                    Explore All Bundles <i class="bi bi-arrow-right ms-1"></i>
+                </a>
+            </div>
         </div>
         
-        <div class="row g-3 g-md-4">
-            <?php foreach ($combo_products as $prod): ?>
-                <?php 
-                    $savings_pct = 0;
-                    if (!empty($prod['offer_price']) && !empty($prod['regular_price']) && $prod['regular_price'] > $prod['offer_price']) {
-                        $savings_pct = round((($prod['regular_price'] - $prod['offer_price']) / $prod['regular_price']) * 100);
-                    }
-                ?>
-                <div class="col-6 col-md-3">
-                    <div class="card product-card h-100 combo-product-card shadow-sm border-0" style="background: #ffffff; border-radius: 12px; overflow: hidden;">
-                        <div class="img-container position-relative">
-                            <div class="badge-overlay d-flex flex-column gap-1 align-items-start">
-                                <span class="badge bg-purple rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;">
-                                    <i class="bi bi-stars"></i> <?php echo !empty($prod['component_count']) ? intval($prod['component_count']) . '-Piece Set' : 'COMBO SET'; ?>
-                                </span>
-                                <?php if ($savings_pct > 0): ?>
-                                    <span class="badge bg-danger rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;">
-                                        SAVE <?php echo $savings_pct; ?>%
+        <div class="product-scroll-wrapper position-relative">
+            <div class="product-scroll-track" id="comboScrollTrack">
+                <?php foreach ($combo_products as $prod): ?>
+                    <?php 
+                        $savings_pct = 0;
+                        if (!empty($prod['offer_price']) && !empty($prod['regular_price']) && $prod['regular_price'] > $prod['offer_price']) {
+                            $savings_pct = round((($prod['regular_price'] - $prod['offer_price']) / $prod['regular_price']) * 100);
+                        }
+                    ?>
+                    <div class="product-scroll-card">
+                        <div class="card product-card h-100 combo-product-card shadow-sm border-0" style="background: #ffffff; border-radius: 12px; overflow: hidden;">
+                            <div class="img-container position-relative">
+                                <div class="badge-overlay d-flex flex-column gap-1 align-items-start">
+                                    <span class="badge bg-purple rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;">
+                                        <i class="bi bi-stars"></i> <?php echo !empty($prod['component_count']) ? intval($prod['component_count']) . '-Piece Set' : 'COMBO SET'; ?>
                                     </span>
-                                <?php endif; ?>
+                                    <?php if ($savings_pct > 0): ?>
+                                        <span class="badge bg-danger rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;">
+                                            SAVE <?php echo $savings_pct; ?>%
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="wishlist-overlay wishlist-toggle" data-product-id="<?php echo $prod['id']; ?>">
+                                    <i class="bi bi-heart"></i>
+                                </div>
+                                <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
+                                    <?php if ($prod['main_image']): ?>
+                                        <img src="uploads/<?php echo e($prod['main_image']); ?>" alt="<?php echo e($prod['name']); ?>" loading="lazy">
+                                    <?php else: ?>
+                                        <div class="w-100 h-100 bg-secondary d-flex align-items-center justify-content-center text-white"><i class="bi bi-image fs-1"></i></div>
+                                    <?php endif; ?>
+                                </a>
                             </div>
-                            <div class="wishlist-overlay wishlist-toggle" data-product-id="<?php echo $prod['id']; ?>">
-                                <i class="bi bi-heart"></i>
+                            <div class="product-details text-center d-flex flex-column p-3">
+                                <span class="product-category text-purple fw-semibold"><i class="bi bi-layers me-1"></i><?php echo e($prod['category_name']); ?></span>
+                                <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
+                                    <h6 class="product-title text-truncate-2"><?php echo e($prod['name']); ?></h6>
+                                </a>
+                                <div class="price-container justify-content-center mb-3">
+                                    <span class="price-regular"><?php echo format_price($prod['offer_price'] ?? $prod['regular_price']); ?></span>
+                                    <?php if ($prod['offer_price']): ?>
+                                        <span class="price-original"><?php echo format_price($prod['regular_price']); ?></span>
+                                    <?php endif; ?>
+                                </div>
+                                <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>" class="btn btn-sm btn-brand-outline rounded-pill w-100 mt-auto py-2" style="font-size: 12px; font-weight: 600;">
+                                    <i class="bi bi-sliders2-vertical me-1"></i> Customise Bundle
+                                </a>
                             </div>
-                            <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
-                                <?php if ($prod['main_image']): ?>
-                                    <img src="uploads/<?php echo e($prod['main_image']); ?>" alt="<?php echo e($prod['name']); ?>" loading="lazy">
-                                <?php else: ?>
-                                    <div class="w-100 h-100 bg-secondary d-flex align-items-center justify-content-center text-white"><i class="bi bi-image fs-1"></i></div>
-                                <?php endif; ?>
-                            </a>
-                        </div>
-                        <div class="product-details text-center d-flex flex-column p-3">
-                            <span class="product-category text-purple fw-semibold"><i class="bi bi-layers me-1"></i><?php echo e($prod['category_name']); ?></span>
-                            <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
-                                <h6 class="product-title text-truncate-2"><?php echo e($prod['name']); ?></h6>
-                            </a>
-                            <div class="price-container justify-content-center mb-3">
-                                <span class="price-regular"><?php echo format_price($prod['offer_price'] ?? $prod['regular_price']); ?></span>
-                                <?php if ($prod['offer_price']): ?>
-                                    <span class="price-original"><?php echo format_price($prod['regular_price']); ?></span>
-                                <?php endif; ?>
-                            </div>
-                            <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>" class="btn btn-sm btn-brand-outline rounded-pill w-100 mt-auto py-2" style="font-size: 12px; font-weight: 600;">
-                                <i class="bi bi-sliders2-vertical me-1"></i> Customise Bundle
-                            </a>
                         </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
+                <?php endforeach; ?>
+            </div>
         </div>
     </div>
 </section>

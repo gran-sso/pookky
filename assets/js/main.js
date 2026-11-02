@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initAlertDismissHandlers();
     initOrderSuccessHandlers();
     initMobileStickyBar();
+    initProductScrollSliders();
 });
 
 // Utility to display notifications using Bootstrap Toasts or fallback Alerts
@@ -1941,6 +1942,144 @@ function initMobileStickyBar() {
             }
         });
     }
+}
+
+/**
+ * State-of-the-Art Product Scroll Slider with Touch, Mouse Drag & Subtle Arrow Navigation
+ */
+function initProductScrollSliders() {
+    const sliders = document.querySelectorAll('.product-scroll-wrapper');
+    if (!sliders.length) return;
+
+    sliders.forEach(wrapper => {
+        const track = wrapper.querySelector('.product-scroll-track');
+        if (!track) return;
+
+        // Resolve associated arrow navigation buttons
+        const trackId = track.id ? '#' + track.id : null;
+        let prevBtn = wrapper.querySelector('.slider-prev');
+        let nextBtn = wrapper.querySelector('.slider-next');
+
+        if (!prevBtn && trackId) {
+            prevBtn = document.querySelector(`.slider-prev[data-target="${trackId}"]`);
+        }
+        if (!nextBtn && trackId) {
+            nextBtn = document.querySelector(`.slider-next[data-target="${trackId}"]`);
+        }
+
+        // Fallback: search within the parent section
+        if (!prevBtn || !nextBtn) {
+            const parentSection = wrapper.closest('section, .container, .row');
+            if (parentSection) {
+                if (!prevBtn) prevBtn = parentSection.querySelector('.slider-prev');
+                if (!nextBtn) nextBtn = parentSection.querySelector('.slider-next');
+            }
+        }
+
+        function updateArrowStates() {
+            if (!prevBtn || !nextBtn) return;
+            const maxScroll = Math.max(0, track.scrollWidth - track.clientWidth);
+
+            // If no overflow, disable and dim both buttons
+            if (maxScroll <= 6) {
+                prevBtn.disabled = true;
+                nextBtn.disabled = true;
+                prevBtn.classList.add('disabled');
+                nextBtn.classList.add('disabled');
+                return;
+            }
+
+            const current = track.scrollLeft;
+            const isAtStart = current <= 6;
+            const isAtEnd = current >= (maxScroll - 8);
+
+            prevBtn.disabled = isAtStart;
+            prevBtn.classList.toggle('disabled', isAtStart);
+
+            nextBtn.disabled = isAtEnd;
+            nextBtn.classList.toggle('disabled', isAtEnd);
+        }
+
+        function getScrollStep() {
+            const firstCard = track.querySelector('.product-scroll-card');
+            if (firstCard) {
+                const style = window.getComputedStyle(track);
+                const gap = parseFloat(style.columnGap || style.gap || 16);
+                return Math.round(firstCard.offsetWidth + gap);
+            }
+            return Math.round(track.clientWidth * 0.75);
+        }
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                track.scrollBy({ left: -getScrollStep(), behavior: 'smooth' });
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                track.scrollBy({ left: getScrollStep(), behavior: 'smooth' });
+            });
+        }
+
+        // Debounced scroll listener
+        let scrollTimer;
+        track.addEventListener('scroll', function() {
+            clearTimeout(scrollTimer);
+            scrollTimer = setTimeout(updateArrowStates, 30);
+        }, { passive: true });
+
+        window.addEventListener('resize', updateArrowStates, { passive: true });
+
+        // Desktop mouse drag-to-scroll support
+        let isDown = false;
+        let startX = 0;
+        let scrollStartLeft = 0;
+        let hasDragged = false;
+
+        track.addEventListener('mousedown', function(e) {
+            // Ignore clicks on links, buttons, inputs, wishlist icons
+            if (e.target.closest('a, button, input, .wishlist-overlay')) return;
+            isDown = true;
+            hasDragged = false;
+            startX = e.pageX - track.offsetLeft;
+            scrollStartLeft = track.scrollLeft;
+            track.classList.add('active-dragging');
+        });
+
+        window.addEventListener('mouseup', function(e) {
+            if (!isDown) return;
+            isDown = false;
+            track.classList.remove('active-dragging');
+
+            if (hasDragged) {
+                const captureClick = function(ce) {
+                    ce.preventDefault();
+                    ce.stopPropagation();
+                    window.removeEventListener('click', captureClick, true);
+                };
+                window.addEventListener('click', captureClick, true);
+            }
+        });
+
+        track.addEventListener('mousemove', function(e) {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - track.offsetLeft;
+            const delta = (x - startX) * 1.35;
+            if (Math.abs(delta) > 6) {
+                hasDragged = true;
+            }
+            track.scrollLeft = scrollStartLeft - delta;
+        });
+
+        // Initialize state
+        updateArrowStates();
+        setTimeout(updateArrowStates, 250);
+        setTimeout(updateArrowStates, 1000);
+    });
 }
 
 

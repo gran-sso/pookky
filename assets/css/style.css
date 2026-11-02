@@ -1851,3 +1851,130 @@ input.qty-input {
     }
 }
 
+/* ==========================================================
+   State-of-the-Art Horizontal Product Slider & Controls
+   ========================================================== */
+.slider-nav-arrows {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.slider-arrow-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(93, 58, 66, 0.2);
+    background: #ffffff;
+    color: var(--brand-mauve);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 0 2px 8px rgba(93, 58, 66, 0.06);
+    padding: 0;
+    line-height: 1;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.slider-arrow-btn:hover:not(:disabled) {
+    background: #ffffff;
+    color: var(--brand-rose-gold);
+    border-color: var(--brand-rose-gold);
+    box-shadow: 0 4px 14px rgba(183, 110, 121, 0.28);
+    transform: translateY(-1px) scale(1.06);
+}
+
+.slider-arrow-btn:active:not(:disabled) {
+    transform: translateY(0) scale(0.94);
+    box-shadow: 0 2px 5px rgba(93, 58, 66, 0.1);
+}
+
+.slider-arrow-btn:disabled,
+.slider-arrow-btn.disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+    border-color: rgba(93, 58, 66, 0.1);
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: none;
+    transform: none;
+}
+
+.product-scroll-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.product-scroll-track {
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px 2px 14px 2px;
+    /* Clean hidden scrollbar across browsers */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.product-scroll-track::-webkit-scrollbar {
+    display: none;
+}
+
+.product-scroll-track.active-dragging {
+    cursor: grabbing;
+    cursor: -webkit-grabbing;
+    user-select: none;
+    scroll-behavior: auto !important;
+    scroll-snap-type: none !important;
+}
+
+.product-scroll-card {
+    scroll-snap-align: start;
+    flex: 0 0 calc(25% - 1.125rem);
+    min-width: calc(25% - 1.125rem);
+    max-width: calc(25% - 1.125rem);
+    transition: transform 0.25s ease;
+}
+
+/* Tablet (768px - 1199px): 3 Cards visible */
+@media (max-width: 1199.98px) {
+    .product-scroll-card {
+        flex: 0 0 calc(33.333% - 1rem);
+        min-width: calc(33.333% - 1rem);
+        max-width: calc(33.333% - 1rem);
+    }
+}
+
+/* Mobile Devices (< 768px): Card Peek effect */
+@media (max-width: 767.98px) {
+    .product-scroll-track {
+        gap: 0.85rem;
+        padding-bottom: 10px;
+    }
+    .product-scroll-card {
+        flex: 0 0 calc(55% - 0.425rem);
+        min-width: calc(55% - 0.425rem);
+        max-width: calc(55% - 0.425rem);
+    }
+    .slider-arrow-btn {
+        width: 34px;
+        height: 34px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .product-scroll-card {
+        flex: 0 0 calc(72% - 0.425rem);
+        min-width: calc(72% - 0.425rem);
+        max-width: calc(72% - 0.425rem);
+    }
+}
+
