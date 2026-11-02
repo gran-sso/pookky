@@ -79,10 +79,12 @@ try {
                     </form>
                     
                     <h6 class="text-uppercase fw-bold mb-3 small" style="letter-spacing: 0.5px; opacity: 0.8;">Get in Touch</h6>
+                    <?php if (defined('SHOW_CONTACT_PHONE') && SHOW_CONTACT_PHONE && !empty(SITE_PHONE)): ?>
                     <div class="contact-item">
                         <i class="bi bi-telephone-fill"></i>
                         <span><a href="tel:<?php echo preg_replace('/[^0-9+]/', '', SITE_PHONE); ?>" class="text-reset text-decoration-none"><?php echo e(SITE_PHONE); ?></a></span>
                     </div>
+                    <?php endif; ?>
                     <?php if (!empty(SITE_WHATSAPP)): ?>
                     <div class="contact-item">
                         <i class="bi bi-whatsapp text-success"></i>

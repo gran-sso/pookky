@@ -29,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'site_email',
                 'site_phone',
                 'site_phone_secondary',
+                'show_contact_phone',
                 'site_whatsapp',
                 'site_sales_email',
                 'contact_address',
@@ -137,6 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $site_phone_val = get_setting('site_phone', '+91 98765 43210');
 $site_phone_secondary_val = get_setting('site_phone_secondary', '');
+$show_contact_phone_val = get_setting('show_contact_phone', '1');
 $site_whatsapp_val = get_setting('site_whatsapp', '+91 98765 43210');
 $site_email_val = get_setting('site_email', 'info@pookky.com');
 $site_sales_email_val = get_setting('site_sales_email', '');
@@ -439,6 +441,18 @@ $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
                                 <div class="form-text small text-muted">Optional backup calling or toll-free number.</div>
                             </div>
 
+                            <!-- Phone Portal Visibility -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <select class="form-select" id="show_contact_phone" name="show_contact_phone">
+                                        <option value="1" <?php echo ($show_contact_phone_val === '1' || $show_contact_phone_val === 1) ? 'selected' : ''; ?>>Visible (Show on Website)</option>
+                                        <option value="0" <?php echo ($show_contact_phone_val === '0' || $show_contact_phone_val === 0) ? 'selected' : ''; ?>>Hidden (Hide from Website)</option>
+                                    </select>
+                                    <label for="show_contact_phone"><i class="bi bi-eye-fill text-primary me-1"></i> Phone Visibility on Website</label>
+                                </div>
+                                <div class="form-text small text-muted">Choose whether to display calling numbers in footer & contact page.</div>
+                            </div>
+
                             <!-- WhatsApp Number -->
                             <div class="col-12 col-md-4">
                                 <div class="form-floating">
@@ -517,7 +531,12 @@ $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
                                         <div class="d-flex align-items-start gap-2">
                                             <div class="fs-4 text-success"><i class="bi bi-telephone-fill"></i></div>
                                             <div>
-                                                <div class="fw-bold text-dark small">Calling Helpline</div>
+                                                <div class="fw-bold text-dark small d-flex align-items-center gap-2">
+                                                    Calling Helpline
+                                                    <span id="badgePhoneVis" class="badge <?php echo ($show_contact_phone_val === '0') ? 'bg-warning text-dark' : 'bg-success-subtle text-success'; ?>" style="font-size: 10px;">
+                                                        <?php echo ($show_contact_phone_val === '0') ? 'Hidden on Portal' : 'Visible on Portal'; ?>
+                                                    </span>
+                                                </div>
                                                 <div class="small text-muted" id="previewSitePhone"><?php echo e($site_phone_val); ?></div>
                                                 <div class="small text-muted" id="previewSitePhoneSec"><?php echo e($site_phone_secondary_val); ?></div>
                                             </div>
@@ -1166,6 +1185,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 4. Contact Details Live Preview Reactive Synchronization
     const inputSitePhone = document.getElementById('site_phone');
     const inputSitePhoneSec = document.getElementById('site_phone_secondary');
+    const inputShowPhone = document.getElementById('show_contact_phone');
     const inputSiteWhatsapp = document.getElementById('site_whatsapp');
     const inputSiteEmail = document.getElementById('site_email');
     const inputSiteSalesEmail = document.getElementById('site_sales_email');
@@ -1174,6 +1194,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateContactPreview() {
         const pPhone = document.getElementById('previewSitePhone');
         const pPhoneSec = document.getElementById('previewSitePhoneSec');
+        const badgePhoneVis = document.getElementById('badgePhoneVis');
         const pWhatsapp = document.getElementById('previewSiteWhatsapp');
         const pEmail = document.getElementById('previewSiteEmail');
         const pSalesEmail = document.getElementById('previewSiteSalesEmail');
@@ -1185,10 +1206,23 @@ document.addEventListener('DOMContentLoaded', function() {
         if (pEmail && inputSiteEmail) pEmail.textContent = inputSiteEmail.value.trim() || 'Not configured';
         if (pSalesEmail && inputSiteSalesEmail) pSalesEmail.textContent = inputSiteSalesEmail.value.trim();
         if (pHours && inputSupportHours) pHours.textContent = inputSupportHours.value.trim() || 'Not configured';
+
+        if (badgePhoneVis && inputShowPhone) {
+            if (inputShowPhone.value === '0') {
+                badgePhoneVis.className = 'badge bg-warning text-dark';
+                badgePhoneVis.textContent = 'Hidden on Portal';
+            } else {
+                badgePhoneVis.className = 'badge bg-success-subtle text-success';
+                badgePhoneVis.textContent = 'Visible on Portal';
+            }
+        }
     }
 
-    [inputSitePhone, inputSitePhoneSec, inputSiteWhatsapp, inputSiteEmail, inputSiteSalesEmail, inputSupportHours].forEach(el => {
-        if (el) el.addEventListener('input', updateContactPreview);
+    [inputSitePhone, inputSitePhoneSec, inputShowPhone, inputSiteWhatsapp, inputSiteEmail, inputSiteSalesEmail, inputSupportHours].forEach(el => {
+        if (el) {
+            el.addEventListener('input', updateContactPreview);
+            el.addEventListener('change', updateContactPreview);
+        }
     });
 
     // 5. Handle deep-linking / URL hashes on page load (e.g., settings.php#company, settings.php#contact, settings.php#razorpay)

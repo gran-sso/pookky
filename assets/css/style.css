@@ -1910,7 +1910,10 @@ input.qty-input {
 }
 
 .product-scroll-track {
-    display: flex;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: stretch !important;
     gap: 1.5rem;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1918,6 +1921,7 @@ input.qty-input {
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
     padding: 6px 2px 14px 2px;
+    width: 100%;
     /* Clean hidden scrollbar across browsers */
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -1937,18 +1941,22 @@ input.qty-input {
 
 .product-scroll-card {
     scroll-snap-align: start;
-    flex: 0 0 calc(25% - 1.125rem);
-    min-width: calc(25% - 1.125rem);
-    max-width: calc(25% - 1.125rem);
+    flex: 0 0 calc(25% - 1.125rem) !important;
+    width: calc(25% - 1.125rem) !important;
+    min-width: 250px !important;
+    max-width: 320px !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
     transition: transform 0.25s ease;
 }
 
 /* Tablet (768px - 1199px): 3 Cards visible */
 @media (max-width: 1199.98px) {
     .product-scroll-card {
-        flex: 0 0 calc(33.333% - 1rem);
-        min-width: calc(33.333% - 1rem);
-        max-width: calc(33.333% - 1rem);
+        flex: 0 0 calc(33.333% - 1rem) !important;
+        width: calc(33.333% - 1rem) !important;
+        min-width: 230px !important;
+        max-width: 300px !important;
     }
 }
 
@@ -1959,9 +1967,10 @@ input.qty-input {
         padding-bottom: 10px;
     }
     .product-scroll-card {
-        flex: 0 0 calc(55% - 0.425rem);
-        min-width: calc(55% - 0.425rem);
-        max-width: calc(55% - 0.425rem);
+        flex: 0 0 calc(55% - 0.425rem) !important;
+        width: calc(55% - 0.425rem) !important;
+        min-width: 180px !important;
+        max-width: 260px !important;
     }
     .slider-arrow-btn {
         width: 34px;
@@ -1972,9 +1981,10 @@ input.qty-input {
 
 @media (max-width: 480px) {
     .product-scroll-card {
-        flex: 0 0 calc(72% - 0.425rem);
-        min-width: calc(72% - 0.425rem);
-        max-width: calc(72% - 0.425rem);
+        flex: 0 0 calc(75% - 0.425rem) !important;
+        width: calc(75% - 0.425rem) !important;
+        min-width: 200px !important;
+        max-width: 280px !important;
     }
 }
 

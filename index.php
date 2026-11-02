@@ -271,6 +271,60 @@ try {
             </div>
         </div>
         
+        <style>
+            #comboScrollTrack {
+                display: flex !important;
+                flex-direction: row !important;
+                flex-wrap: nowrap !important;
+                align-items: stretch !important;
+                gap: 1.5rem !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                scroll-behavior: smooth !important;
+                scroll-snap-type: x mandatory !important;
+                -webkit-overflow-scrolling: touch !important;
+                padding: 6px 2px 14px 2px !important;
+                width: 100% !important;
+                scrollbar-width: none !important;
+                -ms-overflow-style: none !important;
+            }
+            #comboScrollTrack::-webkit-scrollbar { display: none !important; }
+            #comboScrollTrack .product-scroll-card {
+                scroll-snap-align: start !important;
+                flex: 0 0 calc(25% - 1.125rem) !important;
+                width: calc(25% - 1.125rem) !important;
+                min-width: 250px !important;
+                max-width: 320px !important;
+                flex-shrink: 0 !important;
+                box-sizing: border-box !important;
+            }
+            @media (max-width: 1199.98px) {
+                #comboScrollTrack .product-scroll-card {
+                    flex: 0 0 calc(33.333% - 1rem) !important;
+                    width: calc(33.333% - 1rem) !important;
+                    min-width: 230px !important;
+                    max-width: 300px !important;
+                }
+            }
+            @media (max-width: 767.98px) {
+                #comboScrollTrack { gap: 0.85rem !important; padding-bottom: 10px !important; }
+                #comboScrollTrack .product-scroll-card {
+                    flex: 0 0 calc(55% - 0.425rem) !important;
+                    width: calc(55% - 0.425rem) !important;
+                    min-width: 180px !important;
+                    max-width: 260px !important;
+                }
+            }
+            @media (max-width: 480px) {
+                #comboScrollTrack .product-scroll-card {
+                    flex: 0 0 calc(75% - 0.425rem) !important;
+                    width: calc(75% - 0.425rem) !important;
+                    min-width: 200px !important;
+                    max-width: 280px !important;
+                }
+            }
+        </style>
+
         <div class="product-scroll-wrapper position-relative">
             <div class="product-scroll-track" id="comboScrollTrack">
                 <?php foreach ($combo_products as $prod): ?>

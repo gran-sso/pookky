@@ -479,6 +479,7 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('site_email', 'info@pookky.com'),
 ('site_phone', '+91 98765 43210'),
 ('site_phone_secondary', ''),
+('show_contact_phone', '1'),
 ('site_whatsapp', '+91 98765 43210'),
 ('site_sales_email', ''),
 ('contact_address', ''),

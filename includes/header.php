@@ -129,7 +129,7 @@ switch ($theme_font_pairing) {
     <!-- Dynamic Google Fonts -->
     <link href="<?php echo $google_font_url; ?>" rel="stylesheet">
     <!-- Global Style -->
-    <link rel="stylesheet" href="assets/css/style.css?v=2.8">
+    <link rel="stylesheet" href="assets/css/style.css?v=<?php echo file_exists(__DIR__ . '/../assets/css/style.css') ? filemtime(__DIR__ . '/../assets/css/style.css') : '3.0'; ?>">
     
     <!-- Dynamic Theme Custom Properties & Overrides -->
     <style>

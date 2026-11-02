@@ -35,6 +35,7 @@ if (!defined('APP_NAME')) define('APP_NAME', SITE_NAME);
 if (!defined('SITE_EMAIL')) define('SITE_EMAIL', get_setting('site_email', 'info@pookky.com'));
 if (!defined('SITE_PHONE')) define('SITE_PHONE', get_setting('site_phone', '+91 98765 43210'));
 if (!defined('SITE_PHONE_SECONDARY')) define('SITE_PHONE_SECONDARY', get_setting('site_phone_secondary', ''));
+if (!defined('SHOW_CONTACT_PHONE')) define('SHOW_CONTACT_PHONE', (bool)(get_setting('show_contact_phone', '1') === '1'));
 if (!defined('SITE_WHATSAPP')) define('SITE_WHATSAPP', get_setting('site_whatsapp', '+91 98765 43210'));
 if (!defined('SITE_SALES_EMAIL')) define('SITE_SALES_EMAIL', get_setting('site_sales_email', ''));
 if (!defined('CONTACT_ADDRESS')) define('CONTACT_ADDRESS', get_setting('contact_address', ''));

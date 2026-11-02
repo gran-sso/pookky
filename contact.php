@@ -60,6 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             </div>
 
+            <?php if (defined('SHOW_CONTACT_PHONE') && SHOW_CONTACT_PHONE && !empty(SITE_PHONE)): ?>
             <div class="d-flex align-items-start gap-3 mb-4">
                 <div class="fs-4 text-rose"><i class="bi bi-telephone-fill"></i></div>
                 <div>
@@ -79,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <small class="text-muted" style="font-size: 11px;">Lines open <?php echo e(SUPPORT_HOURS); ?></small>
                 </div>
             </div>
+            <?php endif; ?>
 
             <?php if (!empty(SITE_WHATSAPP)): ?>
             <div class="d-flex align-items-start gap-3 mb-4">
