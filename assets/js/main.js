@@ -2079,6 +2079,61 @@ function initProductScrollSliders() {
         updateArrowStates();
         setTimeout(updateArrowStates, 250);
         setTimeout(updateArrowStates, 1000);
+
+        // Subtle Initial "Scroll Peek" nudge when the section enters the viewport
+        let hasPeeked = false;
+        let userInteracted = false;
+
+        const markInteracted = function() {
+            userInteracted = true;
+        };
+
+        track.addEventListener('touchstart', markInteracted, { passive: true });
+        track.addEventListener('mousedown', markInteracted, { passive: true });
+        if (prevBtn) prevBtn.addEventListener('click', markInteracted);
+        if (nextBtn) nextBtn.addEventListener('click', markInteracted);
+
+        // Respect user accessibility preference
+        const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        if ('IntersectionObserver' in window && !prefersReducedMotion) {
+            const peekObserver = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting && !hasPeeked && !userInteracted) {
+                        hasPeeked = true;
+                        peekObserver.disconnect();
+
+                        // Only peek if the track actually has overflow content to scroll
+                        const maxScroll = track.scrollWidth - track.clientWidth;
+                        if (maxScroll <= 30) return;
+
+                        // Give customer 400ms to orient their eyes on the section before the gentle nudge
+                        setTimeout(function() {
+                            if (userInteracted || track.scrollLeft > 10) return;
+
+                            // Nudge ~50px-80px to peek next card into view
+                            const nudgeDistance = Math.min(80, Math.max(50, Math.round(track.clientWidth * 0.16)));
+                            track.scrollTo({ left: nudgeDistance, behavior: 'smooth' });
+
+                            if (nextBtn && !nextBtn.disabled) {
+                                nextBtn.classList.add('slider-arrow-pulse');
+                                setTimeout(function() {
+                                    nextBtn.classList.remove('slider-arrow-pulse');
+                                }, 1400);
+                            }
+
+                            // Hold for 600ms, then softly glide back to start
+                            setTimeout(function() {
+                                if (userInteracted || track.scrollLeft > (nudgeDistance + 10)) return;
+                                track.scrollTo({ left: 0, behavior: 'smooth' });
+                            }, 600);
+                        }, 400);
+                    }
+                });
+            }, { threshold: 0.3 });
+
+            peekObserver.observe(wrapper);
+        }
     });
 }
 

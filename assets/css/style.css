@@ -1904,6 +1904,22 @@ input.qty-input {
     transform: none;
 }
 
+@keyframes arrowNudgePulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+        color: var(--brand-rose-gold);
+        border-color: var(--brand-rose-gold);
+        box-shadow: 0 4px 14px rgba(183, 110, 121, 0.35);
+    }
+}
+
+.slider-arrow-pulse {
+    animation: arrowNudgePulse 1.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
 .product-scroll-wrapper {
     position: relative;
     width: 100%;
