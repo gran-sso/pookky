@@ -2080,60 +2080,106 @@ function initProductScrollSliders() {
         setTimeout(updateArrowStates, 250);
         setTimeout(updateArrowStates, 1000);
 
-        // Subtle Initial "Scroll Peek" nudge when the section enters the viewport
+        // Subtle Initial "Scroll Peek" nudge when the section enters the customer's view
         let hasPeeked = false;
         let userInteracted = false;
+        let peekTimer = null;
+        let cleanupTimer = null;
 
-        const markInteracted = function() {
+        const stopPeek = function() {
             userInteracted = true;
+            if (peekTimer) clearTimeout(peekTimer);
+            if (cleanupTimer) clearTimeout(cleanupTimer);
+            track.classList.remove('rail-peek-active');
+            if (nextBtn) nextBtn.classList.remove('slider-arrow-pulse');
         };
 
-        track.addEventListener('touchstart', markInteracted, { passive: true });
-        track.addEventListener('mousedown', markInteracted, { passive: true });
-        if (prevBtn) prevBtn.addEventListener('click', markInteracted);
-        if (nextBtn) nextBtn.addEventListener('click', markInteracted);
+        track.addEventListener('touchstart', stopPeek, { passive: true });
+        track.addEventListener('mousedown', stopPeek, { passive: true });
+        track.addEventListener('scroll', function() {
+            if (track.scrollLeft > 10) {
+                stopPeek();
+            }
+        }, { passive: true });
+        if (prevBtn) prevBtn.addEventListener('click', stopPeek);
+        if (nextBtn) nextBtn.addEventListener('click', stopPeek);
 
         // Respect user accessibility preference
         const prefersReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+        function triggerPeekNudge() {
+            if (hasPeeked || userInteracted || prefersReducedMotion) return;
+
+            // Only peek if the track actually has overflow content to scroll
+            const maxScroll = track.scrollWidth - track.clientWidth;
+            if (maxScroll <= 25) return;
+
+            // Don't peek if track has already been scrolled
+            if (track.scrollLeft > 10) return;
+
+            const rect = wrapper.getBoundingClientRect();
+            // Ensure the section is genuinely in comfortable view of the customer
+            const isComfortablyInView = rect.top < (window.innerHeight * 0.78) && rect.bottom > 150;
+            if (!isComfortablyInView) return;
+
+            // Prevent premature triggering on initial page load when customer is still at the top
+            const pageOffset = rect.top + (window.pageYOffset || document.documentElement.scrollTop || 0);
+            if ((window.pageYOffset || document.documentElement.scrollTop || 0) < 80 && pageOffset > 450) {
+                return;
+            }
+
+            hasPeeked = true;
+            if (peekObserver) {
+                peekObserver.disconnect();
+            }
+            window.removeEventListener('scroll', handleViewportCheck);
+
+            // Give customer 350ms to register the section before the gentle nudge
+            peekTimer = setTimeout(function() {
+                if (userInteracted || track.scrollLeft > 10) return;
+
+                track.classList.add('rail-peek-active');
+                if (nextBtn && !nextBtn.disabled) {
+                    nextBtn.classList.add('slider-arrow-pulse');
+                }
+
+                // After the 1.1s animation finishes, remove class cleanly
+                cleanupTimer = setTimeout(function() {
+                    track.classList.remove('rail-peek-active');
+                    if (nextBtn) {
+                        nextBtn.classList.remove('slider-arrow-pulse');
+                    }
+                }, 1150);
+            }, 350);
+        }
+
+        let peekObserver = null;
+        const handleViewportCheck = function() {
+            if (!hasPeeked && !userInteracted) {
+                triggerPeekNudge();
+            }
+        };
+
         if ('IntersectionObserver' in window && !prefersReducedMotion) {
-            const peekObserver = new IntersectionObserver(function(entries) {
+            peekObserver = new IntersectionObserver(function(entries) {
                 entries.forEach(function(entry) {
-                    if (entry.isIntersecting && !hasPeeked && !userInteracted) {
-                        hasPeeked = true;
-                        peekObserver.disconnect();
-
-                        // Only peek if the track actually has overflow content to scroll
-                        const maxScroll = track.scrollWidth - track.clientWidth;
-                        if (maxScroll <= 30) return;
-
-                        // Give customer 400ms to orient their eyes on the section before the gentle nudge
-                        setTimeout(function() {
-                            if (userInteracted || track.scrollLeft > 10) return;
-
-                            // Nudge ~50px-80px to peek next card into view
-                            const nudgeDistance = Math.min(80, Math.max(50, Math.round(track.clientWidth * 0.16)));
-                            track.scrollTo({ left: nudgeDistance, behavior: 'smooth' });
-
-                            if (nextBtn && !nextBtn.disabled) {
-                                nextBtn.classList.add('slider-arrow-pulse');
-                                setTimeout(function() {
-                                    nextBtn.classList.remove('slider-arrow-pulse');
-                                }, 1400);
-                            }
-
-                            // Hold for 600ms, then softly glide back to start
-                            setTimeout(function() {
-                                if (userInteracted || track.scrollLeft > (nudgeDistance + 10)) return;
-                                track.scrollTo({ left: 0, behavior: 'smooth' });
-                            }, 600);
-                        }, 400);
+                    if (entry.isIntersecting) {
+                        triggerPeekNudge();
                     }
                 });
-            }, { threshold: 0.3 });
+            }, {
+                threshold: [0.15, 0.3, 0.5]
+            });
 
             peekObserver.observe(wrapper);
         }
+
+        // Also check on window scroll in case observer triggered before page layout stabilized
+        window.addEventListener('scroll', handleViewportCheck, { passive: true });
+        // And check on full window load if user landed directly on or near the section
+        window.addEventListener('load', function() {
+            setTimeout(handleViewportCheck, 200);
+        }, { passive: true });
     });
 }
 

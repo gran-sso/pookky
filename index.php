@@ -323,6 +323,31 @@ try {
                     max-width: 280px !important;
                 }
             }
+            /* Subtle Initial Scroll Peek Animation */
+            @keyframes railPeekNudge {
+                0% { transform: translateX(0); }
+                35% { transform: translateX(-70px); }
+                65% { transform: translateX(-70px); }
+                100% { transform: translateX(0); }
+            }
+            @keyframes railPeekNudgeMobile {
+                0% { transform: translateX(0); }
+                35% { transform: translateX(-45px); }
+                65% { transform: translateX(-45px); }
+                100% { transform: translateX(0); }
+            }
+            .product-scroll-track.rail-peek-active .product-scroll-card {
+                animation: railPeekNudge 1.1s cubic-bezier(0.25, 1, 0.5, 1) !important;
+                will-change: transform;
+            }
+            @media (max-width: 767.98px) {
+                .product-scroll-track.rail-peek-active .product-scroll-card {
+                    animation-name: railPeekNudgeMobile !important;
+                }
+            }
+            .combo-spotlight-section .product-scroll-wrapper {
+                overflow: hidden !important;
+            }
         </style>
 
         <div class="product-scroll-wrapper position-relative">
