@@ -46,7 +46,14 @@ require_once __DIR__ . "/includes/header.php";
         <div class="col-12 col-lg-10">
             <div class="card border-0 shadow-sm p-4 p-md-5 bg-white" style="border-radius: 16px; border: 1px solid rgba(0,0,0,0.04) !important;">
                 <div class="page-content legal-content text-secondary" style="font-size: 0.98rem; line-height: 1.8;">
-                    <?php echo $content; ?>
+                    <?php 
+                        $has_custom_content = $page && !empty($page['content']) && strlen(strip_tags($page['content'])) > 250;
+                        if ($has_custom_content): 
+                            echo $content; 
+                        else: 
+                            include __DIR__ . '/includes/size-guide-content.php'; 
+                        endif; 
+                    ?>
                 </div>
             </div>
             

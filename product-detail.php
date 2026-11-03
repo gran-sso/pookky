@@ -897,50 +897,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
 
 <!-- Size Guide Modal -->
 <div class="modal fade" id="sizeGuideModal" tabindex="-1" aria-labelledby="sizeGuideModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0" style="border-radius:16px;">
-            <div class="modal-header border-0 bg-light" style="border-top-left-radius:16px; border-top-right-radius:16px;">
-                <h5 class="modal-title fw-bold text-dark" id="sizeGuideModalLabel">Size Guide & Measurements</h5>
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow" style="border-radius:16px;">
+            <div class="modal-header border-bottom bg-light px-4 py-3" style="border-top-left-radius:16px; border-top-right-radius:16px;">
+                <h5 class="modal-title fw-bold text-dark mb-0" id="sizeGuideModalLabel">
+                    <i class="bi bi-rulers text-rose me-2"></i> Size Guide & Measurements
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body p-4">
-                <h6 class="fw-bold text-rose">Bras Sizing Chart (in Inches)</h6>
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered size-guide-table small">
-                        <thead>
-                            <tr>
-                                <th>Size Code</th>
-                                <th>Underbust</th>
-                                <th>Overbust</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>32B</td><td>28-30</td><td>32-33</td></tr>
-                            <tr><td>34B</td><td>30-32</td><td>34-35</td></tr>
-                            <tr><td>36B</td><td>32-34</td><td>36-37</td></tr>
-                            <tr><td>38B</td><td>34-36</td><td>38-39</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <h6 class="fw-bold text-rose">Panties Sizing Chart (in Inches)</h6>
-                <div class="table-responsive">
-                    <table class="table table-bordered size-guide-table small">
-                        <thead>
-                            <tr>
-                                <th>Size Code</th>
-                                <th>Waist</th>
-                                <th>Hip</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr><td>S</td><td>26-27</td><td>36-37</td></tr>
-                            <tr><td>M</td><td>28-29</td><td>38-39</td></tr>
-                            <tr><td>L</td><td>30-32</td><td>40-42</td></tr>
-                            <tr><td>XL</td><td>33-35</td><td>43-45</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div class="modal-body p-3 p-md-4">
+                <?php include __DIR__ . '/includes/size-guide-content.php'; ?>
             </div>
         </div>
     </div>
