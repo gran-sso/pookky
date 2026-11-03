@@ -2047,3 +2047,166 @@ input.qty-input {
     }
 }
 
+
+
+/* ==========================================================================
+   Homepage Redesign & Modern E-Commerce UI Elements
+   ========================================================================== */
+
+/* Quick Category Story Circles */
+.quick-category-strip {
+    background: #ffffff;
+    border-bottom: 1px solid #f1f3f5;
+}
+.quick-category-track {
+    display: flex;
+    gap: 1.25rem;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 6px 2px 8px;
+}
+.quick-category-track::-webkit-scrollbar {
+    display: none;
+}
+.quick-category-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-decoration: none !important;
+    transition: transform 0.2s ease;
+    cursor: pointer;
+}
+.quick-category-item:hover {
+    transform: translateY(-2px);
+}
+.quick-category-avatar-wrap {
+    width: 62px;
+    height: 62px;
+    border-radius: 50%;
+    padding: 2.5px;
+    border: 2px solid var(--brand-primary);
+    background: #ffffff;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.05);
+}
+.quick-category-item:hover .quick-category-avatar-wrap {
+    box-shadow: 0 4px 16px rgba(225, 43, 86, 0.28);
+    transform: scale(1.06);
+}
+.quick-category-avatar-wrap.combo-avatar-wrap {
+    border-color: #6f42c1 !important;
+}
+.quick-category-avatar-wrap.all-avatar-wrap {
+    border-color: #d1d5db !important;
+}
+.quick-category-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+.quick-category-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    font-size: 1.25rem;
+}
+.quick-category-name {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    color: #2e2e2e;
+    margin-top: 5px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+/* Trust Highlights Strip */
+.trust-highlights-strip {
+    background: #faf8f9;
+    border-bottom: 1px solid #f0e6e9;
+}
+.trust-card-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 10px;
+}
+@media (min-width: 768px) {
+    .trust-card-item:not(:last-child) {
+        border-right: 1px solid #ebd9df;
+    }
+}
+.trust-icon-wrap {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(225, 43, 86, 0.1);
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+/* Custom Tab Pills for Showcase */
+.custom-pills-nav .nav-link {
+    color: #4b5563;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.2px;
+    transition: all 0.25s ease;
+}
+.custom-pills-nav .nav-link:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+}
+.custom-pills-nav .nav-link.active {
+    background-color: var(--brand-primary) !important;
+    border-color: var(--brand-primary) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(225, 43, 86, 0.25);
+}
+
+/* Editorial Lifestyle Banner */
+.editorial-fit-card {
+    background: linear-gradient(135deg, #FFF1F5 0%, #FCE8EE 100%);
+    border: none;
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+}
+.editorial-fit-card::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: rgba(225, 43, 86, 0.05);
+    pointer-events: none;
+}
+
+/* Review Cards */
+.review-testimonial-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1px solid #f1f3f5;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    border-left: 4px solid var(--brand-primary) !important;
+}
+.review-testimonial-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.06);
+}

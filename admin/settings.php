@@ -73,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'site_notice_badge',
                 'site_notice_text',
                 'site_notice_type',
-                'site_notice_dismissible'
+                'site_notice_dismissible',
+                'home_reviews_enabled'
             ];
 
             foreach ($keys as $key) {
@@ -110,6 +111,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if ($key === 'site_notice_dismissible') {
                     $val = isset($_POST['site_notice_dismissible']) ? '1' : '0';
+                }
+                if ($key === 'home_reviews_enabled') {
+                    $val = isset($_POST['home_reviews_enabled']) ? '1' : '0';
                 }
                 
                 // Verify key exists, else insert
@@ -190,6 +194,7 @@ $notice_badge = get_setting('site_notice_badge', 'PRE-LAUNCH TESTING');
 $notice_text = get_setting('site_notice_text', 'Welcome to Pookky! We are currently undergoing final testing & verification before our official launch. Orders placed during this period are for demonstration/testing and will not be charged or processed.');
 $notice_type = get_setting('site_notice_type', 'amber');
 $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
+$reviews_active = get_setting('home_reviews_enabled', '0') === '1';
 ?>
 
 <div class="row g-4 justify-content-center" style="max-width: 1000px; margin: 0 auto;">
@@ -830,6 +835,29 @@ $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
                                     <div class="form-text small text-muted mt-2 d-flex align-items-center">
                                         <i class="bi bi-info-circle me-1 text-primary"></i> 
                                         <span>Selected categories will show on the top bar in the order chosen above alongside Home, About, and Contact.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Customer Reviews Display Toggle -->
+                            <div class="col-12 mt-3">
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <h6 class="fw-bold mb-1 text-dark">
+                                                <i class="bi bi-chat-heart-fill me-1 text-warning"></i> Customer Reviews Section (Homepage)
+                                            </h6>
+                                            <div class="small text-muted">
+                                                Show the "Loved for Comfort & Fit" customer review cards on the public homepage.
+                                            </div>
+                                        </div>
+                                        <div class="form-check form-switch ms-3">
+                                            <input class="form-check-input" type="checkbox" role="switch" id="home_reviews_enabled" name="home_reviews_enabled" value="1" <?php echo $reviews_active ? 'checked' : ''; ?> style="width: 2.5em; height: 1.3em; cursor: pointer;">
+                                        </div>
+                                    </div>
+                                    <div class="form-text small text-muted mt-2 d-flex align-items-center">
+                                        <i class="bi bi-shield-check me-1 text-success"></i>
+                                        <span>Keep turned OFF for pre-launch. Once real verified orders and customer reviews are gathered, switch this ON anytime to show social proof on the storefront.</span>
                                     </div>
                                 </div>
                             </div>
