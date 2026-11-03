@@ -144,7 +144,15 @@ try {
         <ol class="breadcrumb mb-1 small">
             <li class="breadcrumb-item"><a href="index.php" class="text-muted text-decoration-none">Home</a></li>
             <li class="breadcrumb-item active text-dark fw-medium" aria-current="page">
-                <?php echo !empty($category_slug) ? e(ucwords(str_replace('-', ' ', $category_slug))) : 'Shop Catalog'; ?>
+                <?php 
+                if (!empty($category_slug)) {
+                    echo e(ucwords(str_replace('-', ' ', $category_slug)));
+                } elseif ($product_type === 'combo') {
+                    echo 'Combos & Sets';
+                } else {
+                    echo 'Shop Catalog';
+                }
+                ?>
             </li>
         </ol>
     </nav>
@@ -155,6 +163,8 @@ try {
                 <?php 
                 if (!empty($category_slug)) {
                     echo e(ucwords(str_replace('-', ' ', $category_slug)));
+                } elseif ($product_type === 'combo') {
+                    echo 'Exclusive Combos & Value Sets';
                 } elseif (!empty($search)) {
                     echo 'Search: "' . e($search) . '"';
                 } else {
@@ -172,12 +182,18 @@ try {
     <div class="d-lg-none mb-3">
         <div class="category-scroll-chips d-flex gap-2 overflow-x-auto pb-2" style="-webkit-overflow-scrolling: touch; scrollbar-width: none;">
             <a href="products.php<?php echo !empty($search) ? '?search=' . urlencode($search) : ''; ?>" 
-               class="badge rounded-pill px-3 py-2 text-decoration-none text-nowrap <?php echo empty($category_slug) ? 'bg-brand text-white shadow-sm' : 'bg-white text-dark border'; ?>">
+               class="badge rounded-pill px-3 py-2 text-decoration-none text-nowrap <?php echo (empty($category_slug) && empty($product_type)) ? 'bg-brand text-white shadow-sm' : 'bg-white text-dark border'; ?>">
                 All Collections
             </a>
+            <?php if (!empty($has_active_combos)): ?>
+                <a href="products.php?type=combo<?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
+                   class="badge rounded-pill px-3 py-2 text-decoration-none text-nowrap <?php echo $product_type === 'combo' ? 'bg-brand text-white shadow-sm' : 'bg-white text-dark border'; ?>">
+                    <i class="bi bi-stars text-warning me-1"></i>Combos
+                </a>
+            <?php endif; ?>
             <?php foreach ($filter_categories as $f_cat): ?>
                 <a href="products.php?category=<?php echo e($f_cat['slug']); ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>" 
-                   class="badge rounded-pill px-3 py-2 text-decoration-none text-nowrap <?php echo $category_slug === $f_cat['slug'] ? 'bg-brand text-white shadow-sm' : 'bg-white text-dark border'; ?>">
+                   class="badge rounded-pill px-3 py-2 text-decoration-none text-nowrap <?php echo ($category_slug === $f_cat['slug'] && empty($product_type)) ? 'bg-brand text-white shadow-sm' : 'bg-white text-dark border'; ?>">
                     <?php echo e($f_cat['name']); ?>
                 </a>
             <?php endforeach; ?>
@@ -240,6 +256,12 @@ try {
             $active_filters_list[] = ['label' => 'Fabric: ' . $fab_val, 'url' => $remove_url];
         }
     }
+    if (!empty($product_type)) {
+        $q_copy = $_GET;
+        unset($q_copy['type']);
+        $remove_url = 'products.php' . (!empty($q_copy) ? '?' . http_build_query($q_copy) : '');
+        $active_filters_list[] = ['label' => 'Type: ' . ($product_type === 'combo' ? 'Combos & Sets' : ucfirst($product_type)), 'url' => $remove_url];
+    }
     ?>
 
     <!-- Mobile Top Filter & Sort Bar (Visible on mobile screens) -->
@@ -256,6 +278,7 @@ try {
             <form action="products.php" method="GET" class="d-flex align-items-center flex-grow-1" id="mobile-sort-form">
                 <?php if(!empty($category_slug)): ?><input type="hidden" name="category" value="<?php echo e($category_slug); ?>"><?php endif; ?>
                 <?php if(!empty($search)): ?><input type="hidden" name="search" value="<?php echo e($search); ?>"><?php endif; ?>
+                <?php if(!empty($product_type)): ?><input type="hidden" name="type" value="<?php echo e($product_type); ?>"><?php endif; ?>
                 <?php foreach($selected_sizes as $s): ?><input type="hidden" name="sizes[]" value="<?php echo $s; ?>"><?php endforeach; ?>
                 <?php foreach($selected_colors as $c): ?><input type="hidden" name="colors[]" value="<?php echo $c; ?>"><?php endforeach; ?>
                 <?php foreach($selected_fabrics as $f): ?><input type="hidden" name="fabrics[]" value="<?php echo $f; ?>"><?php endforeach; ?>
@@ -300,9 +323,12 @@ try {
                 </div>
 
                 <form action="products.php" method="GET">
-                    <!-- Carry search key -->
+                    <!-- Carry search & type key -->
                     <?php if(!empty($search)): ?>
                         <input type="hidden" name="search" value="<?php echo e($search); ?>">
+                    <?php endif; ?>
+                    <?php if(!empty($product_type)): ?>
+                        <input type="hidden" name="type" value="<?php echo e($product_type); ?>">
                     <?php endif; ?>
 
                     <!-- Categories -->
@@ -492,6 +518,9 @@ try {
         <form action="products.php" method="GET" id="mobile-filter-drawer-form">
             <?php if(!empty($search)): ?>
                 <input type="hidden" name="search" value="<?php echo e($search); ?>">
+            <?php endif; ?>
+            <?php if(!empty($product_type)): ?>
+                <input type="hidden" name="type" value="<?php echo e($product_type); ?>">
             <?php endif; ?>
             <?php if(!empty($sort_by)): ?>
                 <input type="hidden" name="sort" value="<?php echo e($sort_by); ?>">

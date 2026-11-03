@@ -50,6 +50,13 @@ try {
                                 </a>
                             </li>
                         <?php endforeach; ?>
+                        <?php if (!empty($has_active_combos)): ?>
+                            <li class="mb-2">
+                                <a href="products.php?type=combo" class="footer-link">
+                                    <i class="bi bi-stars text-rose me-1"></i>Combos & Sets
+                                </a>
+                            </li>
+                        <?php endif; ?>
                         <li class="mb-2"><a href="products.php" class="footer-link">All Products</a></li>
                         <li class="mb-2"><a href="size-guide.php" class="footer-link">Size Guide</a></li>
                     </ul>
@@ -59,8 +66,9 @@ try {
                 <div class="col-6 col-lg-2 col-md-3">
                     <h6 class="text-uppercase fw-bold mb-3 mb-md-4">Customer Care</h6>
                     <ul class="list-unstyled">
-                        <li class="mb-2"><a href="faq.php" class="footer-link">FAQs & Help</a></li>
+                        <li class="mb-2"><a href="about.php" class="footer-link">About Us</a></li>
                         <li class="mb-2"><a href="contact.php" class="footer-link">Contact Us</a></li>
+                        <li class="mb-2"><a href="faq.php" class="footer-link">FAQs & Help</a></li>
                         <li class="mb-2"><a href="orders.php" class="footer-link">Track Order</a></li>
                         <?php foreach ($footer_pages as $page_item): ?>
                             <li class="mb-2">

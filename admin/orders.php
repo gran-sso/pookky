@@ -221,9 +221,14 @@ if ($view_id):
             <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px;">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0">Order: <?php echo e($order['order_number']); ?></h5>
-                    <a href="../invoice.php?order_id=<?php echo $order['id']; ?>" target="_blank" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-printer"></i> Print Invoice
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="shipping-label.php?order_id=<?php echo $order['id']; ?>" target="_blank" class="btn btn-sm btn-dark">
+                            <i class="bi bi-tag-fill me-1"></i> Print Shipping Label
+                        </a>
+                        <a href="../invoice.php?order_id=<?php echo $order['id']; ?>" target="_blank" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-printer me-1"></i> Print Invoice
+                        </a>
+                    </div>
                 </div>
                 <div class="text-muted small mb-4">Placed on: <?php echo date('d-M-Y H:i:s', strtotime($order['created_at'])); ?></div>
 
@@ -485,7 +490,7 @@ if ($view_id):
                         <th>Payment Status</th>
                         <th>Order Status</th>
                         <th>Date Placed</th>
-                        <th class="text-end" style="width: 100px;">Action</th>
+                        <th class="text-end" style="width: 140px;">Action</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -522,9 +527,15 @@ if ($view_id):
                                     <span class="badge <?php echo $ord_badge; ?>"><?php echo ucfirst($ord['order_status']); ?></span>
                                 </td>
                                 <td class="small text-muted"><?php echo date('d-M-Y H:i', strtotime($ord['created_at'])); ?></td>
-                                <td class="text-end">
-                                    <a href="orders.php?view=<?php echo $ord['id']; ?>" class="btn btn-sm btn-outline-primary px-3 py-1">
-                                        <i class="bi bi-eye"></i> Open
+                                <td class="text-end text-nowrap">
+                                    <a href="shipping-label.php?order_id=<?php echo $ord['id']; ?>" target="_blank" class="btn btn-sm btn-outline-dark px-2 py-1" title="Print Shipping Label">
+                                        <i class="bi bi-tag-fill"></i>
+                                    </a>
+                                    <a href="../invoice.php?order_id=<?php echo $ord['id']; ?>" target="_blank" class="btn btn-sm btn-outline-secondary px-2 py-1" title="Print Tax Invoice">
+                                        <i class="bi bi-printer"></i>
+                                    </a>
+                                    <a href="orders.php?view=<?php echo $ord['id']; ?>" class="btn btn-sm btn-outline-primary px-2 py-1" title="Open Order Details">
+                                        <i class="bi bi-eye"></i>
                                     </a>
                                 </td>
                             </tr>

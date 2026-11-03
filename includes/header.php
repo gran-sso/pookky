@@ -56,10 +56,19 @@ try {
     
     // Fallback if no specific categories selected
     if (empty($menu_categories)) {
-        $menu_categories = $pdo->query("SELECT * FROM categories WHERE status = 1 AND parent_id IS NULL ORDER BY id ASC LIMIT 4")->fetchAll();
+        $menu_categories = $pdo->query("SELECT * FROM categories WHERE status = 1 AND parent_id IS NULL ORDER BY sort_order ASC, id ASC LIMIT 6")->fetchAll();
     }
 } catch (PDOException $e) {
     $menu_categories = [];
+}
+
+// Check if any combo products are active and available for sale
+$has_active_combos = false;
+try {
+    $combo_count_stmt = $pdo->query("SELECT COUNT(*) FROM products WHERE product_type = 'combo' AND status = 1");
+    $has_active_combos = ($combo_count_stmt && (int)$combo_count_stmt->fetchColumn() > 0);
+} catch (PDOException $e) {
+    $has_active_combos = false;
 }
 
 // Load Dynamic Website Theme Settings
@@ -337,20 +346,23 @@ switch ($theme_font_pairing) {
                 <!-- Clean, compact primary menu -->
                 <ul class="navbar-nav mx-auto mb-2 mb-lg-0 mt-2 mt-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'index.php' ? 'active text-rose fw-semibold' : ''; ?>" href="index.php">Home</a>
+                        <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'index.php' && empty($_GET['category']) && empty($_GET['type'])) ? 'active text-rose fw-semibold' : ''; ?>" href="index.php">Home</a>
                     </li>
                     <!-- Dynamic Categories -->
                     <?php foreach ($menu_categories as $cat): ?>
                         <li class="nav-item">
-                            <a class="nav-link <?php echo (($_GET['category'] ?? '') === $cat['slug']) ? 'active text-rose fw-semibold' : ''; ?>" href="products.php?category=<?php echo e($cat['slug']); ?>"><?php echo e($cat['name']); ?></a>
+                            <a class="nav-link <?php echo (($_GET['category'] ?? '') === $cat['slug'] && empty($_GET['type'])) ? 'active text-rose fw-semibold' : ''; ?>" href="products.php?category=<?php echo e($cat['slug']); ?>"><?php echo e($cat['name']); ?></a>
                         </li>
                     <?php endforeach; ?>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'about.php' ? 'active text-rose fw-semibold' : ''; ?>" href="about.php">About</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) == 'contact.php' ? 'active text-rose fw-semibold' : ''; ?>" href="contact.php">Contact</a>
-                    </li>
+
+                    <!-- Combo Items Link (Visible only if combo items are available to sell) -->
+                    <?php if (!empty($has_active_combos)): ?>
+                        <li class="nav-item">
+                            <a class="nav-link <?php echo (basename($_SERVER['PHP_SELF']) == 'products.php' && ($_GET['type'] ?? '') === 'combo') ? 'active text-rose fw-semibold' : ''; ?>" href="products.php?type=combo">
+                                <i class="bi bi-stars text-rose me-1"></i>Combos
+                            </a>
+                        </li>
+                    <?php endif; ?>
                 </ul>
 
                 <!-- Right Utility Menus (Desktop - Always compact, visible, and never wraps) -->
@@ -395,8 +407,17 @@ switch ($theme_font_pairing) {
                     <?php endif; ?>
                 </div>
 
-                <!-- Mobile Account Links inside Collapsed Menu -->
+                <!-- Mobile Account & Auxiliary Links inside Collapsed Menu -->
                 <div class="d-lg-none border-top pt-3 mt-2 pb-2">
+                    <!-- Mobile Secondary Informational Links -->
+                    <div class="d-flex justify-content-center gap-3 text-muted small pb-3 mb-3 border-bottom">
+                        <a href="about.php" class="text-muted text-decoration-none"><i class="bi bi-info-circle me-1"></i>About Us</a>
+                        <span>&bull;</span>
+                        <a href="contact.php" class="text-muted text-decoration-none"><i class="bi bi-envelope me-1"></i>Contact</a>
+                        <span>&bull;</span>
+                        <a href="size-guide.php" class="text-muted text-decoration-none"><i class="bi bi-rulers me-1"></i>Size Guide</a>
+                    </div>
+
                     <?php if (is_customer_logged_in()): ?>
                         <div class="d-flex align-items-center gap-2 mb-3">
                             <i class="bi bi-person-circle fs-3 text-rose"></i>
