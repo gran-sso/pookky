@@ -74,7 +74,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'site_notice_text',
                 'site_notice_type',
                 'site_notice_dismissible',
-                'home_reviews_enabled'
+                'home_reviews_enabled',
+                'festive_mode_enabled',
+                'festive_theme',
+                'festive_animation_enabled',
+                'festive_badge_text',
+                'festive_message',
+                'festive_coupon_code',
+                'festive_coupon_discount',
+                'festive_btn_text',
+                'festive_btn_url'
             ];
 
             foreach ($keys as $key) {
@@ -114,6 +123,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 if ($key === 'home_reviews_enabled') {
                     $val = isset($_POST['home_reviews_enabled']) ? '1' : '0';
+                }
+                if ($key === 'festive_mode_enabled') {
+                    $val = isset($_POST['festive_mode_enabled']) ? '1' : '0';
+                }
+                if ($key === 'festive_animation_enabled') {
+                    $val = isset($_POST['festive_animation_enabled']) ? '1' : '0';
                 }
                 
                 // Verify key exists, else insert
@@ -195,6 +210,17 @@ $notice_text = get_setting('site_notice_text', 'Welcome to Pookky! We are curren
 $notice_type = get_setting('site_notice_type', 'amber');
 $notice_dismissible = get_setting('site_notice_dismissible', '1') === '1';
 $reviews_active = get_setting('home_reviews_enabled', '0') === '1';
+
+// Festive Theme & Ambient Engine settings
+$festive_enabled = get_setting('festive_mode_enabled', '0') === '1';
+$festive_theme = get_setting('festive_theme', 'diwali');
+$festive_anim_enabled = get_setting('festive_animation_enabled', '1') === '1';
+$festive_badge = get_setting('festive_badge_text', 'DIWALI SPECIAL');
+$festive_msg = get_setting('festive_message', 'Wishing you a Sparkling & Blessed Diwali! Enjoy complimentary gifts & extra savings on all luxury collections.');
+$festive_code = get_setting('festive_coupon_code', 'DIWALI15');
+$festive_discount = get_setting('festive_coupon_discount', 'Flat 15% OFF');
+$festive_btn_text = get_setting('festive_btn_text', 'Shop Festive Sets');
+$festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
 ?>
 
 <div class="row g-4 justify-content-center" style="max-width: 1000px; margin: 0 auto;">
@@ -305,6 +331,11 @@ $reviews_active = get_setting('home_reviews_enabled', '0') === '1';
                 <li class="nav-item" role="presentation">
                     <button class="nav-link settings-tab-btn" id="tab-notice-btn" data-bs-toggle="pill" data-bs-target="#tab-notice" type="button" role="tab" aria-controls="tab-notice" aria-selected="false">
                         <i class="bi bi-megaphone-fill tab-icon"></i> Pre-Launch Banner
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link settings-tab-btn" id="tab-festive-btn" data-bs-toggle="pill" data-bs-target="#tab-festive" type="button" role="tab" aria-controls="tab-festive" aria-selected="false">
+                        <i class="bi bi-stars tab-icon text-warning"></i> Festive Mode
                     </button>
                 </li>
                 <li class="nav-item" role="presentation">
@@ -756,6 +787,123 @@ $reviews_active = get_setting('home_reviews_enabled', '0') === '1';
                                             <i class="bi bi-cone-striped me-1"></i>PRE-LAUNCH TESTING
                                         </span>
                                         <span>Welcome to Pookky! We are currently undergoing final testing & verification before our official launch. Orders placed during this period are for demonstration/testing and will not be charged or processed.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FESTIVE MODE & AMBIENT CELEBRATIONS TAB -->
+                <div class="tab-pane fade" id="tab-festive" role="tabpanel" aria-labelledby="tab-festive-btn">
+                    <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px; border-left: 4px solid #D4AF37 !important;">
+                        <div class="d-flex align-items-center justify-content-between pb-2 border-bottom mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-1 text-dark">
+                                    <i class="bi bi-stars text-warning me-2"></i> Festive Mode & Celebration Engine
+                                </h5>
+                                <p class="text-muted small mb-0">Display a festive ribbon banner, celebration greetings, coupon shortcuts, and ambient animations (glowing diyas, golden sparkles, snow, or confetti).</p>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="festive_mode_enabled" name="festive_mode_enabled" value="1" <?php echo $festive_enabled ? 'checked' : ''; ?> style="width: 2.5em; height: 1.3em; cursor: pointer;">
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- Theme Preset -->
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <select class="form-select" id="festive_theme" name="festive_theme">
+                                        <option value="diwali" <?php echo $festive_theme === 'diwali' ? 'selected' : ''; ?>>🪔 Diwali (Festival of Lights — Royal Burgundy & Gold with Diyas)</option>
+                                        <option value="christmas" <?php echo $festive_theme === 'christmas' ? 'selected' : ''; ?>>❄️ Christmas & New Year (Midnight Frost & Falling Snow)</option>
+                                        <option value="valentines" <?php echo $festive_theme === 'valentines' ? 'selected' : ''; ?>>💖 Valentine & Romance (Deep Rose & Soft Petals)</option>
+                                        <option value="celebration" <?php echo $festive_theme === 'celebration' ? 'selected' : ''; ?>>🎉 Festive Sale & Party (Colorful Confetti Burst)</option>
+                                    </select>
+                                    <label for="festive_theme">Celebration / Festival Preset</label>
+                                </div>
+                                <div class="form-text small text-muted">Automatically adjusts the banner colors, greeting icon, and ambient animation.</div>
+                            </div>
+
+                            <!-- Ambient Animation Toggle -->
+                            <div class="col-12 col-md-6">
+                                <div class="p-3 bg-light rounded-3 border h-100 d-flex flex-column justify-content-center">
+                                    <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0">
+                                        <label class="form-check-label small fw-semibold" for="festive_animation_enabled">
+                                            <i class="bi bi-magic text-warning me-1"></i> Enable Ambient Animations (Golden Sparkles / Diyas)
+                                        </label>
+                                        <input class="form-check-input ms-2" type="checkbox" role="switch" id="festive_animation_enabled" name="festive_animation_enabled" value="1" <?php echo $festive_anim_enabled ? 'checked' : ''; ?> style="width: 2.3em; height: 1.2em; cursor: pointer;">
+                                    </div>
+                                    <div class="small text-muted mt-1" style="font-size: 11px;">Lightweight, battery-friendly ambient effects. Pauses automatically when tab is in background.</div>
+                                </div>
+                            </div>
+
+                            <!-- Badge Text -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="festive_badge_text" name="festive_badge_text" value="<?php echo e($festive_badge); ?>" placeholder="e.g. DIWALI SPECIAL">
+                                    <label for="festive_badge_text">Ribbon Badge Label</label>
+                                </div>
+                                <div class="form-text small text-muted">Short highlighted pill (e.g. DIWALI SPECIAL, FESTIVE OFFER).</div>
+                            </div>
+
+                            <!-- Coupon Code -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="festive_coupon_code" name="festive_coupon_code" value="<?php echo e($festive_code); ?>" placeholder="e.g. DIWALI15">
+                                    <label for="festive_coupon_code">Coupon Code (Optional)</label>
+                                </div>
+                                <div class="form-text small text-muted">Shows an interactive 1-click "Copy Code" button in the ribbon.</div>
+                            </div>
+
+                            <!-- Coupon Discount Label -->
+                            <div class="col-12 col-md-4">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="festive_coupon_discount" name="festive_coupon_discount" value="<?php echo e($festive_discount); ?>" placeholder="e.g. Flat 15% OFF">
+                                    <label for="festive_coupon_discount">Discount Label (Optional)</label>
+                                </div>
+                                <div class="form-text small text-muted">e.g., Flat 15% OFF, Extra 10% OFF.</div>
+                            </div>
+
+                            <!-- Greeting Message Text -->
+                            <div class="col-12">
+                                <div class="form-floating">
+                                    <textarea class="form-control" id="festive_message" name="festive_message" placeholder="Enter festive greeting..." style="height: 80px;"><?php echo e($festive_msg); ?></textarea>
+                                    <label for="festive_message">Festive Greeting / Promotional Message <span class="text-danger">*</span></label>
+                                </div>
+                                <div class="form-text small text-muted">Displayed prominently in the center of the ribbon across all storefront pages.</div>
+                            </div>
+
+                            <!-- Button CTA Label & Destination URL -->
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="festive_btn_text" name="festive_btn_text" value="<?php echo e($festive_btn_text); ?>" placeholder="e.g. Shop Festive Sets">
+                                    <label for="festive_btn_text">Action Button Text</label>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="festive_btn_url" name="festive_btn_url" value="<?php echo e($festive_btn_url); ?>" placeholder="e.g. products.php?type=combo">
+                                    <label for="festive_btn_url">Action Button Destination URL</label>
+                                </div>
+                            </div>
+
+                            <!-- Live Visual Preview -->
+                            <div class="col-12 mt-3">
+                                <div class="alert alert-light border p-3 rounded-3 mb-0">
+                                    <div class="fw-bold small text-muted text-uppercase mb-2"><i class="bi bi-eye me-1"></i> Live Appearance Preview (Diwali Theme):</div>
+                                    <div class="p-2 rounded text-center small fw-medium d-flex align-items-center justify-content-center flex-wrap gap-2" style="background: linear-gradient(90deg, #30060C 0%, #630C1C 25%, #841026 50%, #630C1C 75%, #30060C 100%); color: #FFF8F0; border: 1.5px solid #E5B25D;">
+                                        <span class="badge rounded-pill px-2 py-1 text-uppercase fw-bold" style="background-color: #D4AF37; color: #2A060C; font-size: 10px;">
+                                            🪔 <?php echo e(!empty($festive_badge) ? $festive_badge : 'DIWALI SPECIAL'); ?>
+                                        </span>
+                                        <span><?php echo e(!empty($festive_msg) ? $festive_msg : 'Wishing you a Sparkling & Blessed Diwali! Enjoy complimentary gifts & extra savings.'); ?></span>
+                                        <?php if (!empty($festive_code)): ?>
+                                            <span style="background: rgba(212,175,55,0.2); border: 1px dashed #D4AF37; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 11px;">
+                                                🎟️ <?php echo e($festive_code); ?> (<?php echo e($festive_discount); ?>)
+                                            </span>
+                                        <?php endif; ?>
+                                        <span class="badge rounded-pill px-2 py-1" style="background: #D4AF37; color: #2A060C; font-size: 10.5px;">
+                                            <?php echo e(!empty($festive_btn_text) ? $festive_btn_text : 'Shop Now'); ?> &rsaquo;
+                                        </span>
                                     </div>
                                 </div>
                             </div>

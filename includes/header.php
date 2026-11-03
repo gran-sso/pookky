@@ -311,6 +311,9 @@ switch ($theme_font_pairing) {
         </script>
     <?php endif; ?>
 
+    <!-- Festive Theme Ribbon & Ambient Celebration -->
+    <?php require_once __DIR__ . '/festive-banner.php'; ?>
+
     <!-- Main Navigation Bar -->
     <nav class="navbar navbar-expand-lg navbar-light navbar-veesta sticky-top">
         <div class="container">
