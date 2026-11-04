@@ -130,15 +130,15 @@ $page_title = $page_title ?? 'Admin Dashboard';
                 <i class="bi bi-x-lg"></i>
             </button>
         </div>
-        <div class="py-3 px-3 border-bottom border-secondary mb-3 d-flex align-items-center gap-2">
+        <a href="profile.php" class="py-3 px-3 border-bottom border-secondary mb-3 d-flex align-items-center gap-2 text-decoration-none text-reset" title="My Profile & Security">
             <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white font-weight-bold" style="width: 40px; height: 40px;">
                 <?php echo strtoupper(substr($admin_profile['name'], 0, 1)); ?>
             </div>
             <div class="text-truncate">
                 <div class="text-white small fw-bold"><?php echo e($admin_profile['name']); ?></div>
-                <div class="text-muted" style="font-size: 11px;"><?php echo e($admin_profile['role_name']); ?></div>
+                <div class="text-muted" style="font-size: 11px;"><?php echo e($admin_profile['role_name']); ?> &bull; <span class="text-rose">Profile</span></div>
             </div>
-        </div>
+        </a>
         <ul class="nav flex-column mb-auto">
             <li class="nav-item">
                 <a href="index.php" class="nav-link <?php echo ($active_menu ?? '') === 'dashboard' ? 'active' : ''; ?>">
@@ -269,7 +269,13 @@ $page_title = $page_title ?? 'Admin Dashboard';
             </li>
             <?php endif; ?>
 
-            <li class="nav-item mt-4 pt-3 border-top border-secondary">
+            <li class="nav-item">
+                <a href="profile.php" class="nav-link <?php echo ($active_menu ?? '') === 'profile' ? 'active' : ''; ?>">
+                    <i class="bi bi-person-gear me-2"></i> My Profile & Password
+                </a>
+            </li>
+
+            <li class="nav-item mt-3 pt-3 border-top border-secondary">
                 <a href="logout.php" class="nav-link text-danger">
                     <i class="bi bi-box-arrow-right me-2"></i> Sign Out
                 </a>
@@ -282,15 +288,52 @@ $page_title = $page_title ?? 'Admin Dashboard';
         <!-- Top bar layout -->
         <header class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom">
             <div class="d-flex align-items-center gap-2">
-                <button class="btn btn-outline-secondary d-lg-none" id="sidebarToggle">
+                <button class="btn btn-outline-secondary d-lg-none" id="sidebarToggle" aria-label="Toggle navigation">
                     <i class="bi bi-list"></i>
                 </button>
                 <h1 class="h3 mb-0"><?php echo e($page_title); ?></h1>
             </div>
-            <div>
-                <a href="../index.php" target="_blank" class="btn btn-outline-primary btn-sm">
-                    <i class="bi bi-globe"></i> View Website
+            <div class="d-flex align-items-center gap-2 gap-md-3">
+                <a href="../index.php" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-3 d-none d-sm-inline-flex align-items-center">
+                    <i class="bi bi-box-arrow-up-right me-1"></i> View Website
                 </a>
+
+                <!-- Admin User Dropdown Menu -->
+                <div class="dropdown">
+                    <button class="btn btn-white bg-white border shadow-sm rounded-pill py-1 px-2 px-md-3 d-flex align-items-center gap-2 text-dark dropdown-toggle" type="button" id="adminUserDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="rounded-circle bg-danger-subtle text-danger fw-bold d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 13px;">
+                            <?php echo strtoupper(substr($admin_profile['name'], 0, 1)); ?>
+                        </div>
+                        <span class="small fw-semibold d-none d-md-inline"><?php echo e($admin_profile['name']); ?></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 py-2 mt-2" aria-labelledby="adminUserDropdown" style="min-width: 230px; border-radius: 12px;">
+                        <li class="px-3 py-2 border-bottom mb-1 bg-light rounded-top">
+                            <div class="fw-bold text-dark small text-truncate"><?php echo e($admin_profile['name']); ?></div>
+                            <div class="text-muted small d-flex align-items-center gap-1 mt-1" style="font-size: 11px;">
+                                <span class="badge bg-secondary-subtle text-secondary"><?php echo e($admin_profile['role_name']); ?></span>
+                                <span>@<?php echo e($admin_profile['username']); ?></span>
+                            </div>
+                        </li>
+                        <li>
+                            <a class="dropdown-item py-2 small d-flex align-items-center" href="profile.php">
+                                <i class="bi bi-person-gear text-rose me-2 fs-6"></i> My Profile & Password
+                            </a>
+                        </li>
+                        <?php if (has_admin_permission('settings')): ?>
+                        <li>
+                            <a class="dropdown-item py-2 small d-flex align-items-center" href="settings.php">
+                                <i class="bi bi-gear text-muted me-2 fs-6"></i> Global Settings
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li>
+                            <a class="dropdown-item py-2 small text-danger d-flex align-items-center" href="logout.php">
+                                <i class="bi bi-box-arrow-right me-2 fs-6"></i> Sign Out
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </header>
 

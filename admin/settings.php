@@ -143,12 +143,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+            // Optional: Handle Password Change if submitted on Settings page
+            $adm_curr_pass = trim($_POST['admin_current_password'] ?? '');
+            $adm_new_pass = trim($_POST['admin_new_password'] ?? '');
+            $adm_conf_pass = trim($_POST['admin_confirm_password'] ?? '');
+
+            if (!empty($adm_new_pass) || !empty($adm_curr_pass) || !empty($adm_conf_pass)) {
+                if (empty($adm_curr_pass)) {
+                    throw new Exception('Current password is required to change your admin password.');
+                }
+                if (!password_verify($adm_curr_pass, $admin_profile['password'])) {
+                    throw new Exception('Current password does not match our records.');
+                }
+                if (strlen($adm_new_pass) < 8) {
+                    throw new Exception('New password must be at least 8 characters long.');
+                }
+                if ($adm_new_pass !== $adm_conf_pass) {
+                    throw new Exception('New password and confirmation do not match.');
+                }
+                $hashed_adm = password_hash($adm_new_pass, PASSWORD_DEFAULT);
+                $up_adm = $pdo->prepare("UPDATE admins SET password = ? WHERE id = ?");
+                $up_adm->execute([$hashed_adm, $current_admin_id]);
+                log_admin_action($current_admin_id, "Changed admin password via settings page");
+            }
+
             $pdo->commit();
             log_admin_action($current_admin_id, "Updated global website, shipment & payment configurations");
             set_flash_message('success', 'All store configurations saved successfully!');
             header('Location: settings.php');
             exit;
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             $error = 'Failed to save settings: ' . $e->getMessage();
         }
@@ -361,6 +385,11 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                 <li class="nav-item" role="presentation">
                     <button class="nav-link settings-tab-btn" id="tab-google-btn" data-bs-toggle="pill" data-bs-target="#tab-google" type="button" role="tab" aria-controls="tab-google" aria-selected="false">
                         <i class="bi bi-google tab-icon"></i> Google 1-Click Login
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link settings-tab-btn" id="tab-security-btn" data-bs-toggle="pill" data-bs-target="#tab-security" type="button" role="tab" aria-controls="tab-security" aria-selected="false">
+                        <i class="bi bi-shield-lock tab-icon"></i> Admin Password
                     </button>
                 </li>
             </ul>
@@ -1233,6 +1262,61 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                     </div>
                 </div>
 
+                <!-- 11. ADMIN PASSWORD & SECURITY TAB -->
+                <div class="tab-pane fade" id="tab-security" role="tabpanel" aria-labelledby="tab-security-btn">
+                    <div class="card border-0 shadow-sm p-4 bg-white mb-4" style="border-radius: 12px; border-left: 4px solid var(--brand-accent) !important;">
+                        <div class="d-flex align-items-center justify-content-between pb-3 border-bottom mb-3">
+                            <div>
+                                <h5 class="fw-bold mb-1 text-dark">
+                                    <i class="bi bi-key text-rose me-2"></i> Change Admin Login Password
+                                </h5>
+                                <p class="text-muted small mb-0">Update the login password for currently signed-in administrator <strong><?php echo e($admin_profile['name']); ?></strong> (<code>@<?php echo e($admin_profile['username']); ?></code>).</p>
+                            </div>
+                            <a href="profile.php" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                <i class="bi bi-person-gear me-1"></i> Full Profile Page
+                            </a>
+                        </div>
+
+                        <div class="alert alert-light border small text-muted mb-4 d-flex align-items-center gap-2">
+                            <i class="bi bi-info-circle-fill text-primary fs-5"></i>
+                            <div>Leave these password fields blank if you do not wish to change your password. Only fill them when updating your login credentials.</div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-12 col-md-4">
+                                <label for="admin_current_password" class="form-label small fw-bold text-dark">Current Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="admin_current_password" name="admin_current_password" placeholder="Enter current password" autocomplete="current-password">
+                                    <button class="btn btn-outline-secondary px-3" type="button" onclick="const p = document.getElementById('admin_current_password'); p.type = p.type === 'password' ? 'text' : 'password'; this.querySelector('i').classList.toggle('bi-eye'); this.querySelector('i').classList.toggle('bi-eye-slash');" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="admin_new_password" class="form-label small fw-bold text-dark">New Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="admin_new_password" name="admin_new_password" minlength="8" placeholder="Minimum 8 characters" autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary px-3" type="button" onclick="const p = document.getElementById('admin_new_password'); p.type = p.type === 'password' ? 'text' : 'password'; this.querySelector('i').classList.toggle('bi-eye'); this.querySelector('i').classList.toggle('bi-eye-slash');" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text small text-muted">Must be at least 8 characters.</div>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label for="admin_confirm_password" class="form-label small fw-bold text-dark">Confirm New Password</label>
+                                <div class="input-group">
+                                    <input type="password" class="form-control" id="admin_confirm_password" name="admin_confirm_password" minlength="8" placeholder="Re-enter new password" autocomplete="new-password">
+                                    <button class="btn btn-outline-secondary px-3" type="button" onclick="const p = document.getElementById('admin_confirm_password'); p.type = p.type === 'password' ? 'text' : 'password'; this.querySelector('i').classList.toggle('bi-eye'); this.querySelector('i').classList.toggle('bi-eye-slash');" aria-label="Toggle password visibility">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
             </div> <!-- /tab-content -->
 
             <!-- Unified Save Button -->
@@ -1401,10 +1485,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 5. Handle deep-linking / URL hashes on page load (e.g., settings.php#company, settings.php#contact, settings.php#razorpay)
+    // 5. Handle deep-linking / URL hashes on page load (e.g., settings.php#company, settings.php#contact, settings.php#razorpay, settings.php#security)
     const currentHash = window.location.hash;
     if (currentHash) {
-        const cleaned = currentHash.replace('#sec-', '').replace('#tab-', '').replace('#', '');
+        let cleaned = currentHash.replace('#sec-', '').replace('#tab-', '').replace('#', '');
+        if (cleaned === 'password' || cleaned === 'change-password') cleaned = 'security';
         const directTarget = `#tab-${cleaned}`;
         activateTab(directTarget);
     }
