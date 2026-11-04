@@ -269,4 +269,280 @@ HTML;
 
     return send_html_email($to_email, $receiver_name, $subject, $html_body);
 }
+
+/**
+ * Send new order notification email to the store admin / merchant
+ *
+ * @param int $order_id Database order ID
+ * @return bool True if mail was dispatched to at least one recipient
+ */
+function send_admin_order_notification_email($order_id) {
+    global $pdo;
+
+    $enabled = defined('ORDER_NOTIFICATION_ENABLED') ? ORDER_NOTIFICATION_ENABLED : (get_setting('order_notification_enabled', '1') === '1');
+    if (!$enabled) {
+        return false;
+    }
+
+    $recipients_str = defined('ORDER_NOTIFICATION_EMAIL') ? ORDER_NOTIFICATION_EMAIL : get_setting('order_notification_email', 'pookkyinnerwears@gmail.com');
+    if (empty(trim((string)$recipients_str))) {
+        $recipients_str = 'pookkyinnerwears@gmail.com';
+    }
+
+    // Parse comma-separated emails
+    $raw_emails = explode(',', (string)$recipients_str);
+    $valid_recipients = [];
+    foreach ($raw_emails as $em) {
+        $clean = trim($em);
+        if (filter_var($clean, FILTER_VALIDATE_EMAIL)) {
+            $valid_recipients[] = $clean;
+        }
+    }
+
+    if (empty($valid_recipients)) {
+        return false;
+    }
+
+    // Fetch order details
+    $order_stmt = $pdo->prepare("
+        SELECT o.*, c.email as customer_account_email, c.name as customer_account_name 
+        FROM orders o 
+        LEFT JOIN customers c ON o.customer_id = c.id 
+        WHERE o.id = ? LIMIT 1
+    ");
+    $order_stmt->execute([$order_id]);
+    $order = $order_stmt->fetch();
+
+    if (!$order) {
+        return false;
+    }
+
+    // Fetch order items
+    $items_stmt = $pdo->prepare("
+        SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC
+    ");
+    $items_stmt->execute([$order_id]);
+    $items = $items_stmt->fetchAll();
+
+    $site_name = defined('SITE_NAME') ? SITE_NAME : 'Pookky';
+    $currency_symbol = defined('CURRENCY_SYMBOL') ? CURRENCY_SYMBOL : '₹';
+    $order_number = $order['order_number'];
+    $grand_total = number_format((float)$order['grand_total'], 2);
+    $subtotal = number_format((float)$order['subtotal'], 2);
+    $shipping = (float)$order['shipping_charge'] > 0 ? $currency_symbol . number_format((float)$order['shipping_charge'], 2) : 'FREE';
+    $discount = (float)$order['discount'] > 0 ? '-' . $currency_symbol . number_format((float)$order['discount'], 2) : 'None';
+    $coupon = !empty($order['coupon_code']) ? htmlspecialchars($order['coupon_code']) : '';
+    $payment_method = strtoupper($order['payment_method'] ?? 'COD');
+    $payment_status = strtoupper($order['payment_status'] ?? 'PENDING');
+    $is_paid = ($payment_status === 'PAID');
+
+    // Receiver info
+    $receiver_name = htmlspecialchars($order['receiver_name'] ?? 'Customer');
+    $receiver_phone = htmlspecialchars($order['receiver_phone'] ?? '');
+    $customer_email = htmlspecialchars($order['customer_account_email'] ?? '');
+    $full_address = htmlspecialchars(trim(($order['address_line1'] ?? '') . (!empty($order['address_line2']) ? ', ' . $order['address_line2'] : '')));
+    $city_state_pin = htmlspecialchars(trim(($order['city'] ?? '') . ', ' . ($order['state'] ?? '') . ' - ' . ($order['pincode'] ?? '')));
+    $order_date = date('d M, Y - h:i A', strtotime($order['created_at']));
+
+    // Protocol & Domain for 1-click links
+    $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? 80) == 443) ? "https://" : "http://";
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    
+    // Build admin links
+    $admin_order_url = $protocol . $host . '/admin/orders.php?search=' . urlencode($order_number);
+    $admin_shipping_label_url = $protocol . $host . '/admin/shipping-label.php?order_id=' . $order_id;
+
+    // Build items HTML table rows
+    $items_html = '';
+    $total_qty = 0;
+    foreach ($items as $item) {
+        $p_name = htmlspecialchars($item['product_name']);
+        $p_sku = htmlspecialchars($item['sku'] ?? 'N/A');
+        $size_str = htmlspecialchars($item['size_name'] ?? '');
+        $color_str = htmlspecialchars($item['color_name'] ?? '');
+        $qty = (int)$item['quantity'];
+        $total_qty += $qty;
+        $price = $currency_symbol . number_format((float)$item['price'], 2);
+        $row_total = $currency_symbol . number_format((float)$item['total'], 2);
+
+        $variant_desc = [];
+        if (!empty($size_str)) $variant_desc[] = "Size: <strong>{$size_str}</strong>";
+        if (!empty($color_str)) $variant_desc[] = "Color: <strong>{$color_str}</strong>";
+        $variant_line = !empty($variant_desc) ? '<div style="font-size: 12px; color: #666666; margin-top: 3px;">' . implode(' &bull; ', $variant_desc) . '</div>' : '';
+
+        // Combo breakdown if available
+        $combo_note = '';
+        if (!empty($item['combo_product_id']) && !empty($item['combo_config'])) {
+            $c_conf = json_decode($item['combo_config'], true);
+            if (is_array($c_conf) && !empty($c_conf['selections'])) {
+                $c_items = [];
+                foreach ($c_conf['selections'] as $c_sel) {
+                    $c_items[] = htmlspecialchars(($c_sel['product_name'] ?? '') . ' (' . ($c_sel['size_name'] ?? '') . ')');
+                }
+                $combo_note = '<div style="font-size: 11px; color: #a12b48; margin-top: 4px; background: #fff5f7; padding: 4px 8px; border-radius: 4px;">Bundle contains: ' . implode(', ', $c_items) . '</div>';
+            }
+        }
+
+        $items_html .= "
+        <tr style=\"border-bottom: 1px solid #f0e6e4;\">
+            <td style=\"padding: 12px 10px; vertical-align: top;\">
+                <strong style=\"color: #1a1a1a;\">{$p_name}</strong>
+                {$variant_line}
+                {$combo_note}
+                <div style=\"font-size: 11px; color: #888888; margin-top: 2px;\">SKU: {$p_sku}</div>
+            </td>
+            <td style=\"padding: 12px 10px; text-align: center; vertical-align: top;\">{$qty}</td>
+            <td style=\"padding: 12px 10px; text-align: right; vertical-align: top;\">{$price}</td>
+            <td style=\"padding: 12px 10px; text-align: right; vertical-align: top; font-weight: 600;\">{$row_total}</td>
+        </tr>";
+    }
+
+    $subject = "🚨 New Order Received: #{$order_number} ({$currency_symbol}{$grand_total} - {$payment_method})";
+
+    $status_badge_bg = $is_paid ? '#28a745' : '#e67e22';
+    $status_badge_text = $is_paid ? 'PAID &bull; ONLINE' : 'CASH ON DELIVERY (PENDING)';
+
+    // Build coupon HTML if applicable
+    $coupon_row = '';
+    if (!empty($coupon) && $discount !== 'None') {
+        $coupon_row = "
+        <tr>
+            <td style=\"color: #28a745;\">Coupon Discount ({$coupon})</td>
+            <td style=\"text-align: right; color: #28a745; font-weight: 600;\">{$discount}</td>
+        </tr>";
+    }
+
+    $html_body = <<<HTML
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{$subject}</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f7f6f2; margin: 0; padding: 25px 15px; color: #2b2b2b;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 640px; margin: 0 auto; background: #ffffff; border-radius: 14px; overflow: hidden; border: 1px solid #e8e3df; box-shadow: 0 4px 20px rgba(0,0,0,0.06);">
+        <!-- Header -->
+        <tr>
+            <td style="background: linear-gradient(135deg, #24161a 0%, #3d232b 100%); padding: 28px 30px; text-align: center;">
+                <div style="color: #fdf5f2; font-size: 24px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;">{$site_name}</div>
+                <div style="color: #dca59b; font-size: 13px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 4px;">⚡ New Order Alert</div>
+            </td>
+        </tr>
+
+        <!-- Alert Summary Banner -->
+        <tr>
+            <td style="padding: 24px 30px; background: #fdf7f5; border-bottom: 1px solid #f0e6e4;">
+                <table width="100%" cellspacing="0" cellpadding="0">
+                    <tr>
+                        <td>
+                            <div style="font-size: 12px; color: #888888; text-transform: uppercase; letter-spacing: 0.5px;">Order Number</div>
+                            <div style="font-size: 22px; font-weight: 700; color: #92535d; margin-top: 2px;">#{$order_number}</div>
+                            <div style="font-size: 12px; color: #777777; margin-top: 3px;">Placed on {$order_date}</div>
+                        </td>
+                        <td style="text-align: right; vertical-align: middle;">
+                            <span style="display: inline-block; background: {$status_badge_bg}; color: #ffffff; font-size: 11px; font-weight: 700; padding: 6px 12px; border-radius: 20px; letter-spacing: 0.5px;">
+                                {$status_badge_text}
+                            </span>
+                            <div style="font-size: 22px; font-weight: 700; color: #1a1a1a; margin-top: 6px;">{$currency_symbol}{$grand_total}</div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+        <!-- Customer & Delivery Info -->
+        <tr>
+            <td style="padding: 24px 30px;">
+                <table width="100%" cellspacing="0" cellpadding="0" style="margin-bottom: 20px;">
+                    <tr>
+                        <td width="50%" style="vertical-align: top; padding-right: 15px;">
+                            <div style="font-size: 11px; font-weight: 700; color: #92535d; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">👤 Customer Details</div>
+                            <div style="font-size: 15px; font-weight: 600; color: #1a1a1a;">{$receiver_name}</div>
+                            <div style="font-size: 13px; color: #444444; margin-top: 4px;">📞 <a href="tel:{$receiver_phone}" style="color: #2b2b2b; text-decoration: none; font-weight: 600;">{$receiver_phone}</a></div>
+                            <div style="font-size: 13px; color: #666666; margin-top: 2px;">✉️ <a href="mailto:{$customer_email}" style="color: #92535d; text-decoration: none;">{$customer_email}</a></div>
+                        </td>
+                        <td width="50%" style="vertical-align: top; padding-left: 15px; border-left: 1px solid #f0e6e4;">
+                            <div style="font-size: 11px; font-weight: 700; color: #92535d; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">📍 Shipping Address</div>
+                            <div style="font-size: 13px; color: #333333; line-height: 1.5;">
+                                {$full_address}<br>
+                                <strong>{$city_state_pin}</strong>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Items Breakdown -->
+                <div style="font-size: 13px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; border-bottom: 2px solid #24161a; padding-bottom: 6px;">
+                    📦 Order Items ({$total_qty} units)
+                </div>
+                <table width="100%" cellspacing="0" cellpadding="0" style="font-size: 13px; border-collapse: collapse; margin-bottom: 20px;">
+                    <thead>
+                        <tr style="background: #faf5f4; color: #777777; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;">
+                            <th style="padding: 8px 10px; text-align: left;">Item</th>
+                            <th style="padding: 8px 10px; text-align: center;">Qty</th>
+                            <th style="padding: 8px 10px; text-align: right;">Unit</th>
+                            <th style="padding: 8px 10px; text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {$items_html}
+                    </tbody>
+                </table>
+
+                <!-- Financials -->
+                <table width="100%" cellspacing="0" cellpadding="0" style="font-size: 13px; line-height: 1.8; margin-bottom: 25px;">
+                    <tr>
+                        <td style="color: #666666;">Subtotal</td>
+                        <td style="text-align: right; color: #1a1a1a; font-weight: 600;">{$currency_symbol}{$subtotal}</td>
+                    </tr>
+                    <tr>
+                        <td style="color: #666666;">Shipping Charge</td>
+                        <td style="text-align: right; color: #1a1a1a; font-weight: 600;">{$shipping}</td>
+                    </tr>
+                    {$coupon_row}
+                    <tr style="border-top: 2px solid #24161a; font-size: 16px;">
+                        <td style="padding-top: 8px; font-weight: 700; color: #1a1a1a;">Grand Total</td>
+                        <td style="padding-top: 8px; text-align: right; font-weight: 700; color: #92535d;">{$currency_symbol}{$grand_total}</td>
+                    </tr>
+                </table>
+
+                <!-- Action CTA Buttons -->
+                <table width="100%" cellspacing="0" cellpadding="0" style="margin-top: 25px;">
+                    <tr>
+                        <td align="center">
+                            <a href="{$admin_order_url}" style="display: inline-block; background: #92535d; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 25px; font-weight: 600; font-size: 13px; margin: 4px;">
+                                🔍 View Order in Admin
+                            </a>
+                            <a href="{$admin_shipping_label_url}" style="display: inline-block; background: #24161a; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 25px; font-weight: 600; font-size: 13px; margin: 4px;">
+                                🏷️ Print Shipping Label
+                            </a>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+            <td style="background-color: #faf5f4; padding: 18px 30px; text-align: center; font-size: 11px; color: #888888; border-top: 1px solid #f0e6e4;">
+                This is an automated operational notification sent from your <strong>{$site_name}</strong> store platform.<br>
+                To change where order notifications are sent, visit Admin &rarr; Global Settings &rarr; Contact &amp; Support.
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+HTML;
+
+    // Send to all valid recipient emails
+    $any_sent = false;
+    foreach ($valid_recipients as $recipient_email) {
+        $sent = send_html_email($recipient_email, "{$site_name} Admin", $subject, $html_body);
+        if ($sent) {
+            $any_sent = true;
+        }
+    }
+
+    return $any_sent;
+}
 ?>

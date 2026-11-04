@@ -358,15 +358,17 @@ function finalize_razorpay_order($data, $payment_id) {
             unset($_SESSION['pending_checkout']);
         }
 
-        // Send order confirmation email
+        // Send order confirmation and admin notification emails
         try {
+            require_once __DIR__ . '/mail.php';
             $cust_email = $data['customer_email'] ?? '';
             if (!empty($cust_email)) {
-                require_once __DIR__ . '/mail.php';
                 send_order_confirmation_email($cust_email, $order_number, $data['grand_total'], $data['delivery_name']);
             }
+            // Dispatch admin notification
+            send_admin_order_notification_email($order_id);
         } catch (Exception $e) {
-            // Non-blocking
+            error_log('Razorpay order notification email error: ' . $e->getMessage());
         }
 
         return [

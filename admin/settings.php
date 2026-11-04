@@ -35,6 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'contact_address',
                 'contact_intro_text',
                 'contact_map_url',
+                'order_notification_email',
+                'order_notification_enabled',
                 'currency_symbol',
                 'currency_code',
                 'default_gst_rate',
@@ -130,6 +132,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($key === 'festive_animation_enabled') {
                     $val = isset($_POST['festive_animation_enabled']) ? '1' : '0';
                 }
+                if ($key === 'order_notification_enabled') {
+                    $val = isset($_POST['order_notification_enabled']) ? '1' : '0';
+                }
                 
                 // Verify key exists, else insert
                 $stmt = $pdo->prepare("SELECT id FROM settings WHERE setting_key = ? LIMIT 1");
@@ -189,6 +194,8 @@ $support_hours_val = get_setting('support_hours', 'Monday to Saturday, 9:00 AM t
 $contact_address_val = get_setting('contact_address', '');
 $contact_intro_val = get_setting('contact_intro_text', 'Have questions about sizes, fabric blends, or bulk orders? Reach out directly. Our support staff is available Monday to Saturday, 9:00 AM to 6:00 PM.');
 $contact_map_url_val = get_setting('contact_map_url', '');
+$order_notif_email_val = get_setting('order_notification_email', 'pookkyinnerwears@gmail.com');
+$order_notif_enabled_val = get_setting('order_notification_enabled', '1') === '1';
 
 $company_legal_name_val = get_setting('company_legal_name', 'St. Joseph Garments');
 $company_gstin_val = get_setting('company_gstin', '');
@@ -579,6 +586,34 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                                     <label for="contact_map_url"><i class="bi bi-map-fill text-success me-1"></i> Google Maps Directions Link</label>
                                 </div>
                                 <div class="form-text small text-muted">Optional: Direct Google Maps URL to your office or showroom location.</div>
+                            </div>
+                        </div>
+
+                        <!-- Admin Order Notifications Configuration -->
+                        <div class="mt-4 pt-4 border-top">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                                <div>
+                                    <h6 class="fw-bold mb-1 text-dark">
+                                        <i class="bi bi-bell-fill text-danger me-2"></i> Admin Order Notifications
+                                    </h6>
+                                    <p class="text-muted small mb-0">Receive instant email alerts with order details and packaging slips whenever a customer places an order.</p>
+                                </div>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input" type="checkbox" id="order_notification_enabled" name="order_notification_enabled" value="1" <?php echo $order_notif_enabled_val ? 'checked' : ''; ?>>
+                                    <label class="form-check-label small fw-semibold text-dark" for="order_notification_enabled">Enable Alerts</label>
+                                </div>
+                            </div>
+
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control font-monospace" id="order_notification_email" name="order_notification_email" value="<?php echo e($order_notif_email_val); ?>" placeholder="pookkyinnerwears@gmail.com">
+                                        <label for="order_notification_email"><i class="bi bi-envelope-at-fill text-danger me-1"></i> Order Alert Recipient Email(s)</label>
+                                    </div>
+                                    <div class="form-text small text-muted">
+                                        Default: <code>pookkyinnerwears@gmail.com</code>. Supports multiple email addresses separated by commas (e.g. <code>pookkyinnerwears@gmail.com, dispatch@pookky.com</code>).
+                                    </div>
+                                </div>
                             </div>
                         </div>
 

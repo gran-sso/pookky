@@ -106,5 +106,9 @@ if (!defined('SITE_NOTICE_BADGE')) define('SITE_NOTICE_BADGE', get_setting('site
 if (!defined('SITE_NOTICE_TEXT')) define('SITE_NOTICE_TEXT', get_setting('site_notice_text', 'Welcome to Pookky! We are currently undergoing final testing & verification before our official launch. Orders placed during this period are for demonstration/testing and will not be charged or processed.'));
 if (!defined('SITE_NOTICE_TYPE')) define('SITE_NOTICE_TYPE', get_setting('site_notice_type', 'amber')); // 'amber', 'brand', 'dark', 'info'
 if (!defined('SITE_NOTICE_DISMISSIBLE')) define('SITE_NOTICE_DISMISSIBLE', (bool)(get_setting('site_notice_dismissible', '1') === '1'));
+
+// Admin Order Notification Email Configuration
+if (!defined('ORDER_NOTIFICATION_EMAIL')) define('ORDER_NOTIFICATION_EMAIL', env('ORDER_NOTIFICATION_EMAIL') ?: get_setting('order_notification_email', 'pookkyinnerwears@gmail.com'));
+if (!defined('ORDER_NOTIFICATION_ENABLED')) define('ORDER_NOTIFICATION_ENABLED', (bool)(get_setting('order_notification_enabled', '1') === '1'));
 ?>
 

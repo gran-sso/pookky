@@ -116,6 +116,7 @@ try {
         if ($cust_row && !empty($cust_row['email'])) {
             send_order_confirmation_email($cust_row['email'], $order['order_number'], $order['grand_total'], $order['receiver_name']);
         }
+        send_admin_order_notification_email($order['id']);
     } catch (Exception $e) {
         // Email failure non-blocking
     }

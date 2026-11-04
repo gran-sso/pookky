@@ -663,12 +663,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && (isset($_POST['place_order']) || $i
 
                     // Send confirmation email for COD
                     try {
+                        require_once __DIR__ . '/includes/mail.php';
                         $cust_email_for_mail = $is_logged_in ? ($logged_in_customer['email'] ?? '') : ($guest_email ?? '');
                         if (!empty($cust_email_for_mail)) {
-                            require_once __DIR__ . '/includes/mail.php';
                             send_order_confirmation_email($cust_email_for_mail, $order_number, $grand_total, $delivery_name);
                         }
-                    } catch (Exception $e) {}
+                        // Send admin order alert notification
+                        send_admin_order_notification_email($order_id);
+                    } catch (Exception $e) {
+                        error_log('Order notification email error: ' . $e->getMessage());
+                    }
                     
                     header('Location: order-success.php?order_num=' . urlencode($order_number));
                     exit;

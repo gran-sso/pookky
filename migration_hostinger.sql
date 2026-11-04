@@ -248,6 +248,8 @@ INSERT IGNORE INTO `settings` (`setting_key`, `setting_value`) VALUES
 ('festive_message', 'Celebrate Diwali with Pookky! Flat 15% OFF across all collections.'),
 ('festive_coupon_code', 'DIWALI15'),
 ('festive_discount_label', '15% OFF'),
+('order_notification_email', 'pookkyinnerwears@gmail.com'),
+('order_notification_enabled', '1'),
 ('nav_menu_categories', ''),
 ('razorpay_enabled', '0'),
 ('razorpay_key_id', ''),
