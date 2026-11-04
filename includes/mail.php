@@ -16,6 +16,19 @@ require_once __DIR__ . '/functions.php';
  * @return bool True if mail accepted for delivery, false otherwise
  */
 function send_html_email($to_email, $to_name, $subject, $html_body) {
+    // Ensure email subject lines never contain raw HTML entities or numeric codepoints for currency (email subjects do NOT decode HTML entities)
+    $subject = str_replace(
+        ['&amp;#8377;', '&#8377;', '&#x20B9;', '&#x20b9;', '262145', '8377'],
+        '₹',
+        $subject
+    );
+    // Sanitize currency entities in HTML body to guarantee pure UTF-8 display across all mail clients
+    $html_body = str_replace(
+        ['&amp;#8377;', '&#8377;', '&#x20B9;', '&#x20b9;', '262145'],
+        '₹',
+        $html_body
+    );
+
     $from_email = defined('SITE_EMAIL') ? SITE_EMAIL : 'no-reply@' . ($_SERVER['SERVER_NAME'] ?? 'pookky.com');
     $site_name = defined('SITE_NAME') ? SITE_NAME : 'Pookky';
 
@@ -221,7 +234,7 @@ HTML;
 function send_order_confirmation_email($to_email, $order_number, $grand_total, $receiver_name = 'Valued Customer') {
     $site_name = defined('SITE_NAME') ? SITE_NAME : 'Pookky';
     $site_email = defined('SITE_EMAIL') ? SITE_EMAIL : 'info@pookky.com';
-    $currency_symbol = defined('CURRENCY_SYMBOL') ? CURRENCY_SYMBOL : '₹';
+    $currency_symbol = defined('CURRENCY_SYMBOL') ? (function_exists('sanitize_currency_symbol') ? sanitize_currency_symbol(CURRENCY_SYMBOL) : CURRENCY_SYMBOL) : '₹';
     $current_year = date('Y');
     $formatted_amount = number_format((float)$grand_total, 2);
 
@@ -325,7 +338,7 @@ function send_admin_order_notification_email($order_id) {
     $items = $items_stmt->fetchAll();
 
     $site_name = defined('SITE_NAME') ? SITE_NAME : 'Pookky';
-    $currency_symbol = defined('CURRENCY_SYMBOL') ? CURRENCY_SYMBOL : '₹';
+    $currency_symbol = defined('CURRENCY_SYMBOL') ? (function_exists('sanitize_currency_symbol') ? sanitize_currency_symbol(CURRENCY_SYMBOL) : CURRENCY_SYMBOL) : '₹';
     $order_number = $order['order_number'];
     $grand_total = number_format((float)$order['grand_total'], 2);
     $subtotal = number_format((float)$order['subtotal'], 2);

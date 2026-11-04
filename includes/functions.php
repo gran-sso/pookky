@@ -31,7 +31,9 @@ function display_flash_messages() {
 // Format prices with currency symbol
 function format_price($amount) {
     $sym = defined('CURRENCY_SYMBOL') ? CURRENCY_SYMBOL : '₹';
-    if ($sym === '262145' || is_numeric($sym) || empty(trim((string)$sym)) || strpos((string)$sym, '262145') !== false) {
+    if (function_exists('sanitize_currency_symbol')) {
+        $sym = sanitize_currency_symbol($sym);
+    } elseif ($sym === '262145' || is_numeric($sym) || empty(trim((string)$sym)) || preg_match('/[0-9&#;]/', (string)$sym) || strpos((string)$sym, '262145') !== false || strpos((string)$sym, '8377') !== false) {
         $sym = '₹';
     }
     return $sym . ' ' . number_format((float)$amount, 2);

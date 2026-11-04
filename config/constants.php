@@ -44,10 +44,42 @@ if (!defined('CONTACT_MAP_URL')) define('CONTACT_MAP_URL', get_setting('contact_
 if (!defined('SITE_LOGO')) define('SITE_LOGO', BASE_URL . 'assets/images/logo.png');
 if (!defined('SITE_LOGO_WHITE')) define('SITE_LOGO_WHITE', BASE_URL . 'assets/images/pookky-logo-white.png');
 
+// Currency symbol sanitizer helper to guard against HTML entities, codepoints or numeric corruptions
+if (!function_exists('sanitize_currency_symbol')) {
+    function sanitize_currency_symbol($symbol) {
+        if (empty($symbol)) {
+            return '₹';
+        }
+        $str = trim((string)$symbol);
+        // Decode HTML entities (e.g. &#8377;, &amp;#8377;, &#x20B9;)
+        $decoded = html_entity_decode($str, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        if (strpos($decoded, '&') !== false) {
+            $decoded = html_entity_decode($decoded, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+        // If it is numeric, or contains legacy corrupted codes (262145, 8377), or residual entity symbols, default to ₹
+        if (is_numeric($decoded) 
+            || strpos($decoded, '262145') !== false 
+            || strpos($decoded, '8377') !== false 
+            || preg_match('/[0-9&#;]/', $decoded) 
+            || empty(trim($decoded))) {
+            return '₹';
+        }
+        return $decoded;
+    }
+}
+
 if (!defined('CURRENCY_SYMBOL')) {
-    $db_currency_symbol = get_setting('currency_symbol', '₹');
-    if ($db_currency_symbol === '262145' || is_numeric($db_currency_symbol) || empty(trim((string)$db_currency_symbol)) || strpos((string)$db_currency_symbol, '262145') !== false) {
-        $db_currency_symbol = '₹';
+    $raw_symbol = get_setting('currency_symbol', '₹');
+    $db_currency_symbol = sanitize_currency_symbol($raw_symbol);
+
+    // Auto self-heal database row if it was corrupted or stored as HTML entity/numeric code
+    if ($raw_symbol !== $db_currency_symbol) {
+        try {
+            global $pdo;
+            if (isset($pdo) && $pdo instanceof PDO) {
+                $pdo->prepare("UPDATE settings SET setting_value = ? WHERE setting_key = 'currency_symbol'")->execute([$db_currency_symbol]);
+            }
+        } catch (Exception $e) {}
     }
     define('CURRENCY_SYMBOL', $db_currency_symbol);
 }

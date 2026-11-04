@@ -101,8 +101,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($key === 'currency_symbol') {
-                    if ($val === '262145' || is_numeric($val) || empty(trim((string)$val)) || strpos((string)$val, '262145') !== false) {
-                        $val = '₹';
+                    if (function_exists('sanitize_currency_symbol')) {
+                        $val = sanitize_currency_symbol($val);
+                    } else {
+                        if ($val === '262145' || is_numeric($val) || empty(trim((string)$val)) || preg_match('/[0-9&#;]/', (string)$val) || strpos((string)$val, '262145') !== false || strpos((string)$val, '8377') !== false) {
+                            $val = '₹';
+                        }
                     }
                 }
                 if ($key === 'google_auth_enabled') {
@@ -419,7 +423,7 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                             </div>
                             <div class="col-12 col-md-3">
                                 <div class="form-floating">
-                                    <input type="text" class="form-control" id="currency_symbol" name="currency_symbol" value="<?php echo e(CURRENCY_SYMBOL === '262145' || is_numeric(CURRENCY_SYMBOL) ? '₹' : CURRENCY_SYMBOL); ?>" required placeholder="Currency Symbol *">
+                                    <input type="text" class="form-control" id="currency_symbol" name="currency_symbol" value="<?php echo e(function_exists('sanitize_currency_symbol') ? sanitize_currency_symbol(CURRENCY_SYMBOL) : '₹'); ?>" required placeholder="Currency Symbol *">
                                     <label for="currency_symbol">Currency Symbol <span class="text-danger">*</span></label>
                                 </div>
                             </div>
@@ -1093,7 +1097,7 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                             <div class="col-12 col-md-6">
                                 <div class="form-floating">
                                     <input type="number" step="0.01" class="form-control" id="shipping_flat_rate" name="shipping_flat_rate" value="<?php echo e(SHIPPING_FLAT_RATE); ?>" placeholder="0.00" required>
-                                    <label for="shipping_flat_rate">Flat Shipping Charges (<?php echo e(CURRENCY_SYMBOL === '262145' || is_numeric(CURRENCY_SYMBOL) ? '₹' : CURRENCY_SYMBOL); ?>) <span class="text-danger">*</span></label>
+                                    <label for="shipping_flat_rate">Flat Shipping Charges (<?php echo e(function_exists('sanitize_currency_symbol') ? sanitize_currency_symbol(CURRENCY_SYMBOL) : '₹'); ?>) <span class="text-danger">*</span></label>
                                 </div>
                                 <div class="form-text small text-muted">Applied to shopping cart subtotal when below the free shipping threshold.</div>
                             </div>
@@ -1101,7 +1105,7 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                             <div class="col-12 col-md-6">
                                 <div class="form-floating">
                                     <input type="number" step="0.01" class="form-control" id="free_shipping_threshold" name="free_shipping_threshold" value="<?php echo e(FREE_SHIPPING_THRESHOLD); ?>" placeholder="0.00" required>
-                                    <label for="free_shipping_threshold">Free Shipping Order Threshold (<?php echo e(CURRENCY_SYMBOL === '262145' || is_numeric(CURRENCY_SYMBOL) ? '₹' : CURRENCY_SYMBOL); ?>) <span class="text-danger">*</span></label>
+                                    <label for="free_shipping_threshold">Free Shipping Order Threshold (<?php echo e(function_exists('sanitize_currency_symbol') ? sanitize_currency_symbol(CURRENCY_SYMBOL) : '₹'); ?>) <span class="text-danger">*</span></label>
                                 </div>
                                 <div class="form-text small text-muted">Orders with subtotal equal to or above this value qualify for free delivery automatically.</div>
                             </div>
@@ -1159,7 +1163,7 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                                     <div class="mt-2 pt-2 border-top">
                                         <div class="form-floating">
                                             <input type="number" step="0.01" class="form-control" id="cod_shipping_charge" name="cod_shipping_charge" value="<?php echo e($cod_charge); ?>" placeholder="0 for Free COD">
-                                            <label for="cod_shipping_charge">COD Extra Fee (<?php echo e(CURRENCY_SYMBOL === '262145' || is_numeric(CURRENCY_SYMBOL) ? '₹' : CURRENCY_SYMBOL); ?>)</label>
+                                            <label for="cod_shipping_charge">COD Extra Fee (<?php echo e(function_exists('sanitize_currency_symbol') ? sanitize_currency_symbol(CURRENCY_SYMBOL) : '₹'); ?>)</label>
                                         </div>
                                     </div>
                                 </div>
