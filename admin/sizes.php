@@ -40,6 +40,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // EDIT / UPDATE SIZE
+        if (isset($_POST['edit_size'])) {
+            $id = (int)($_POST['size_id'] ?? 0);
+            $size_name = trim($_POST['size_name'] ?? '');
+            $size_code = trim($_POST['size_code'] ?? '');
+            $category_type = trim($_POST['category_type'] ?? '');
+
+            if ($id <= 0 || empty($size_name) || empty($size_code) || empty($category_type)) {
+                $error = 'All fields are required.';
+            } else {
+                try {
+                    $stmt = $pdo->prepare("UPDATE sizes SET size_name = ?, size_code = ?, category_type = ? WHERE id = ?");
+                    $stmt->execute([$size_name, $size_code, $category_type, $id]);
+                    log_admin_action($current_admin_id, "Updated size option #$id: $size_code ($category_type)");
+                    set_flash_message('success', "Size option '$size_code' updated successfully!");
+                    header('Location: sizes.php');
+                    exit;
+                } catch (PDOException $e) {
+                    $error = 'Failed to update size: ' . $e->getMessage();
+                }
+            }
+        }
+
         // DELETE SIZE
         if (isset($_POST['delete_size'])) {
             $id = (int)$_POST['size_id'];
@@ -87,6 +110,7 @@ sort_sizes($sizes, true);
                         <option value="">-- Select Type --</option>
                         <option value="Bras">Bras</option>
                         <option value="Panties">Panties</option>
+                        <option value="Nighties">Nighties</option>
                         <option value="Sleepwear">Sleepwear</option>
                         <option value="Shapewear">Shapewear</option>
                         <option value="Activewear">Activewear</option>
@@ -116,7 +140,7 @@ sort_sizes($sizes, true);
         <div class="card border-0 shadow-sm p-4 bg-white" style="border-radius: 12px;">
             <h5 class="fw-bold mb-3">Configured Size Templates</h5>
             
-            <?php if (!empty($error) && isset($_POST['delete_size'])): ?>
+            <?php if (!empty($error) && (isset($_POST['delete_size']) || isset($_POST['edit_size']))): ?>
                 <div class="alert alert-danger p-2 small"><?php echo e($error); ?></div>
             <?php endif; ?>
 
@@ -128,7 +152,7 @@ sort_sizes($sizes, true);
                             <th>Product Type</th>
                             <th>Size Name</th>
                             <th>Size Code</th>
-                            <th class="text-end" style="width: 80px;">Action</th>
+                            <th class="text-end" style="width: 110px;">Action</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -144,13 +168,24 @@ sort_sizes($sizes, true);
                                     <td><span class="fw-bold text-dark"><?php echo e($sz['size_name']); ?></span></td>
                                     <td><code><?php echo e($sz['size_code']); ?></code></td>
                                     <td class="text-end">
-                                        <form action="sizes.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this size?');">
-                                            <?php echo csrf_field(); ?>
-                                            <input type="hidden" name="size_id" value="<?php echo $sz['id']; ?>">
-                                            <button type="submit" name="delete_size" class="btn btn-sm btn-outline-danger p-1 px-2" title="Delete">
-                                                <i class="bi bi-trash"></i>
+                                        <div class="d-flex justify-content-end gap-1">
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-outline-primary p-1 px-2 btn-edit-size" 
+                                                    data-id="<?php echo $sz['id']; ?>"
+                                                    data-name="<?php echo e($sz['size_name']); ?>"
+                                                    data-code="<?php echo e($sz['size_code']); ?>"
+                                                    data-type="<?php echo e($sz['category_type']); ?>"
+                                                    title="Edit Size">
+                                                <i class="bi bi-pencil-square"></i>
                                             </button>
-                                        </form>
+                                            <form action="sizes.php" method="POST" onsubmit="return confirm('Are you sure you want to delete this size?');" class="d-inline mb-0">
+                                                <?php echo csrf_field(); ?>
+                                                <input type="hidden" name="size_id" value="<?php echo $sz['id']; ?>">
+                                                <button type="submit" name="delete_size" class="btn btn-sm btn-outline-danger p-1 px-2" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
@@ -161,5 +196,96 @@ sort_sizes($sizes, true);
         </div>
     </div>
 </div>
+
+<!-- Edit Size Modal -->
+<div class="modal fade" id="editSizeModal" tabindex="-1" aria-labelledby="editSizeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow" style="border-radius: 12px;">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="editSizeModalLabel">
+                    <i class="bi bi-pencil-square text-primary me-2"></i>Edit Size Option
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="sizes.php" method="POST">
+                <?php echo csrf_field(); ?>
+                <input type="hidden" name="size_id" id="edit_size_id" value="">
+                
+                <div class="modal-body p-4">
+                    <div class="form-floating mb-3">
+                        <select class="form-select" id="edit_category_type" name="category_type" required>
+                            <option value="">-- Select Type --</option>
+                            <option value="Bras">Bras</option>
+                            <option value="Panties">Panties</option>
+                            <option value="Nighties">Nighties</option>
+                            <option value="Sleepwear">Sleepwear</option>
+                            <option value="Shapewear">Shapewear</option>
+                            <option value="Activewear">Activewear</option>
+                        </select>
+                        <label for="edit_category_type">Product Type Category <span class="text-danger">*</span></label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="edit_size_name" name="size_name" placeholder="Size Label Name *" required>
+                        <label for="edit_size_name">Size Label Name <span class="text-danger">*</span></label>
+                    </div>
+
+                    <div class="form-floating mb-3">
+                        <input type="text" class="form-control" id="edit_size_code" name="size_code" placeholder="Short Size Code *" required>
+                        <label for="edit_size_code">Short Size Code <span class="text-danger">*</span></label>
+                    </div>
+
+                    <div class="alert alert-info py-2 px-3 small rounded-3 mb-0">
+                        <i class="bi bi-info-circle me-1"></i>
+                        Updating this size template will automatically update all linked product variants and size swatches across the storefront.
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light p-3">
+                    <button type="button" class="btn btn-secondary rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="edit_size" class="btn btn-brand rounded-pill px-4">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editModalEl = document.getElementById('editSizeModal');
+    if (!editModalEl) return;
+    const editModal = new bootstrap.Modal(editModalEl);
+
+    document.querySelectorAll('.btn-edit-size').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const id = this.getAttribute('data-id');
+            const name = this.getAttribute('data-name');
+            const code = this.getAttribute('data-code');
+            const type = this.getAttribute('data-type');
+
+            document.getElementById('edit_size_id').value = id || '';
+            document.getElementById('edit_size_name').value = name || '';
+            document.getElementById('edit_size_code').value = code || '';
+            
+            const typeSelect = document.getElementById('edit_category_type');
+            if (typeSelect) {
+                let found = false;
+                for (let i = 0; i < typeSelect.options.length; i++) {
+                    if (typeSelect.options[i].value.toLowerCase() === (type || '').toLowerCase()) {
+                        typeSelect.selectedIndex = i;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found && type) {
+                    const opt = new Option(type, type, true, true);
+                    typeSelect.add(opt);
+                }
+            }
+
+            editModal.show();
+        });
+    });
+});
+</script>
 
 <?php require_once __DIR__ . '/includes/footer.php'; ?>
