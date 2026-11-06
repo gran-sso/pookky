@@ -31,3 +31,4 @@ Disallow: /*.zip$
 
 # Google XML Sitemap Location
 Sitemap: https://pookky.com/sitemap.xml
+

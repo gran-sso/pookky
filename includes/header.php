@@ -151,6 +151,19 @@ $google_site_verification = get_setting('google_site_verification', '');
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <?php 
+    $ga4_id = defined('GOOGLE_ANALYTICS_ID') ? GOOGLE_ANALYTICS_ID : get_setting('google_analytics_id', 'G-NPR2XY1FRJ');
+    if (!empty($ga4_id)): 
+    ?>
+    <!-- Google tag (gtag.js) - Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo e($ga4_id); ?>"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '<?php echo e($ga4_id); ?>');
+    </script>
+    <?php endif; ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($meta_title) ? e($meta_title) : SITE_NAME . ' | Premium Ladies\' Innerwear'; ?></title>
     <meta name="description" content="<?php echo isset($meta_desc) ? e($meta_desc) : 'Discover premium comfort, elegant fits, and luxurious fabrics with Pookky innerwear.'; ?>">

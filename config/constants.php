@@ -98,6 +98,7 @@ if (!defined('INVOICE_TERMS_NOTES')) define('INVOICE_TERMS_NOTES', get_setting('
 if (!defined('FOOTER_ABOUT_TEXT')) define('FOOTER_ABOUT_TEXT', get_setting('footer_about_text', "Pookky is a leading ladies' innerwear brand dedicated to delivering luxury, comfort, and perfect fit. We design and manufacture premium lingerie using the finest fabrics for the modern woman."));
 if (!defined('SUPPORT_HOURS')) define('SUPPORT_HOURS', get_setting('support_hours', 'Monday to Saturday, 9:00 AM to 6:00 PM'));
 if (!defined('RETURN_WINDOW_DAYS')) define('RETURN_WINDOW_DAYS', (int)get_setting('return_window_days', 7));
+if (!defined('GOOGLE_ANALYTICS_ID')) define('GOOGLE_ANALYTICS_ID', get_setting('google_analytics_id', 'G-NPR2XY1FRJ'));
 
 // Social Media Links
 if (!defined('SOCIAL_FACEBOOK')) define('SOCIAL_FACEBOOK', get_setting('social_facebook', 'https://facebook.com'));

@@ -86,7 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'festive_coupon_discount',
                 'festive_btn_text',
                 'festive_btn_url',
-                'google_site_verification'
+                'google_site_verification',
+                'google_analytics_id'
             ];
 
             foreach ($keys as $key) {
@@ -456,6 +457,14 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                                     <label for="google_site_verification"><i class="bi bi-google text-danger me-1"></i> Google Search Console Verification Code</label>
                                 </div>
                                 <div class="form-text small text-muted">HTML verification code string provided by Google Search Console.</div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="google_analytics_id" name="google_analytics_id" value="<?php echo e(get_setting('google_analytics_id', 'G-NPR2XY1FRJ')); ?>" placeholder="G-XXXXXXXXXX">
+                                    <label for="google_analytics_id"><i class="bi bi-bar-chart-line-fill text-primary me-1"></i> Google Analytics 4 (GA4) Measurement ID</label>
+                                </div>
+                                <div class="form-text small text-muted">Measurement ID (e.g. <code>G-NPR2XY1FRJ</code>) for live visitor traffic & e-commerce analytics.</div>
                             </div>
 
                             <div class="col-12 col-md-6">

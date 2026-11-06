@@ -55,6 +55,34 @@ require_once __DIR__ . '/includes/header.php';
 $order_timestamp = !empty($order['created_at']) ? strtotime($order['created_at']) : time();
 $est_start = date('D, M j', strtotime('+4 days', $order_timestamp));
 $est_end = date('D, M j', strtotime('+6 days', $order_timestamp));
+
+// Track E-Commerce Purchase Event in GA4 (Only once per order)
+$ga_session_key = 'ga_tracked_order_' . $order['id'];
+$ga4_active_id = defined('GOOGLE_ANALYTICS_ID') ? GOOGLE_ANALYTICS_ID : get_setting('google_analytics_id', 'G-NPR2XY1FRJ');
+if (empty($_SESSION[$ga_session_key]) && !empty($ga4_active_id)):
+    $_SESSION[$ga_session_key] = true;
+    $ga_items = [];
+    foreach ($order_items as $item) {
+        $ga_items[] = [
+            'item_id' => $item['sku'] ?? ('PROD-' . $item['product_id']),
+            'item_name' => $item['product_name'],
+            'price' => (float)$item['price'],
+            'quantity' => (int)$item['quantity']
+        ];
+    }
+?>
+<script>
+  if (typeof gtag === 'function') {
+      gtag('event', 'purchase', {
+          transaction_id: <?php echo json_encode($order['order_number']); ?>,
+          value: <?php echo (float)$order['grand_total']; ?>,
+          currency: 'INR',
+          shipping: <?php echo (float)($order['shipping_charge'] ?? 0); ?>,
+          items: <?php echo json_encode($ga_items, JSON_UNESCAPED_SLASHES); ?>
+      });
+  }
+</script>
+<?php endif; ?>
 ?>
 
 <div class="order-confirmation-wrapper py-5">
