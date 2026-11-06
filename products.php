@@ -37,7 +37,15 @@ try {
 
     // Filter by Category
     if (!empty($category_slug)) {
-        $query_str .= " AND c.slug = ? ";
+        $query_str .= " AND (c.slug = ? OR (p.product_type = 'combo' AND EXISTS (
+            SELECT 1 FROM combo_components cc 
+            LEFT JOIN categories cc_cat ON cc.allowed_category_id = cc_cat.id 
+            LEFT JOIN products cc_p ON cc.allowed_product_id = cc_p.id 
+            LEFT JOIN categories cc_pcat ON cc_p.category_id = cc_pcat.id 
+            WHERE cc.combo_product_id = p.id AND (cc_cat.slug = ? OR cc_pcat.slug = ?)
+        ))) ";
+        $params[] = $category_slug;
+        $params[] = $category_slug;
         $params[] = $category_slug;
     }
 
@@ -99,6 +107,17 @@ try {
     $stmt = $pdo->prepare($query_str);
     $stmt->execute($params);
     $products = $stmt->fetchAll();
+
+    // Separate into Single Items and Value Combo Items
+    $single_products = [];
+    $combo_products = [];
+    foreach ($products as $prod) {
+        if (($prod['product_type'] ?? 'single') === 'combo') {
+            $combo_products[] = $prod;
+        } else {
+            $single_products[] = $prod;
+        }
+    }
 
     // Fetch options to populate filters
     $filter_categories = $pdo->query("SELECT * FROM categories WHERE status = 1 ORDER BY name ASC")->fetchAll();
@@ -426,7 +445,10 @@ try {
             <!-- Desktop header sorting control (Hidden on mobile/tablet) -->
             <div class="d-none d-lg-flex justify-content-between align-items-center mb-4 bg-white p-3 shadow-sm rounded-3">
                 <div class="small text-muted">
-                    Found <strong class="text-dark"><?php echo count($products); ?></strong> items in catalog.
+                    Found <strong class="text-dark"><?php echo count($products); ?></strong> items in catalog
+                    <?php if (!empty($single_products) && !empty($combo_products)): ?>
+                        (<span class="text-dark fw-medium"><?php echo count($single_products); ?> single</span>, <span class="text-purple fw-medium"><?php echo count($combo_products); ?> combos</span>)
+                    <?php endif; ?>.
                 </div>
                 <form action="products.php" method="GET" class="d-flex align-items-center gap-2">
                     <!-- Preserve existing filters -->
@@ -448,56 +470,153 @@ try {
                 </form>
             </div>
 
-            <!-- Products catalog grid (Responsive 2 columns on mobile, 3 columns on tablet/desktop) -->
-            <div class="row g-3 g-md-4">
-                <?php if (empty($products)): ?>
-                    <div class="col-12 text-center py-5 bg-white rounded-3 shadow-sm my-2">
-                        <div class="fs-1 text-muted"><i class="bi bi-emoji-frown"></i></div>
-                        <h4 class="fw-bold mt-3">No matching items found</h4>
-                        <p class="text-muted small">Try broadening your filter criteria or adjusting tags.</p>
-                        <a href="products.php" class="btn btn-sm btn-brand mt-2">Clear All Filters</a>
-                    </div>
-                <?php else: ?>
-                    <?php foreach ($products as $prod): ?>
-                        <div class="col-6 col-md-4">
-                            <div class="card product-card h-100">
-                                <div class="img-container">
-                                    <div class="badge-overlay d-flex flex-column gap-1 align-items-start">
-                                        <?php if (($prod['product_type'] ?? '') === 'combo'): ?>
-                                            <span class="badge bg-purple rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;"><i class="bi bi-stars"></i> COMBO</span>
-                                        <?php endif; ?>
-                                        <?php if ($prod['offer_price']): ?>
-                                            <span class="badge bg-danger rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;">OFFER</span>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="wishlist-overlay wishlist-toggle" data-product-id="<?php echo $prod['id']; ?>">
-                                        <i class="bi bi-heart"></i>
-                                    </div>
-                                    <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
-                                        <?php if ($prod['main_image']): ?>
-                                            <img src="uploads/<?php echo e($prod['main_image']); ?>" alt="<?php echo e($prod['name']); ?>" loading="lazy">
-                                        <?php else: ?>
-                                            <div class="w-100 h-100 bg-secondary d-flex align-items-center justify-content-center text-white"><i class="bi bi-image fs-1"></i></div>
-                                        <?php endif; ?>
-                                    </a>
-                                </div>
-                                <div class="product-details text-center">
-                                    <span class="product-category"><?php echo e($prod['category_name']); ?></span>
-                                    <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
-                                        <h6 class="product-title text-truncate-2"><?php echo e($prod['name']); ?></h6>
-                                    </a>
-                                    <div class="price-container justify-content-center">
-                                        <span class="price-regular"><?php echo format_price($prod['offer_price'] ?? $prod['regular_price']); ?></span>
-                                        <?php if ($prod['offer_price']): ?>
-                                            <span class="price-original"><?php echo format_price($prod['regular_price']); ?></span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
+            <?php
+            // Clean helper function to render product card consistently
+            $render_product_card = function($prod) {
+                $is_combo = (($prod['product_type'] ?? '') === 'combo');
+                $current_price = $prod['offer_price'] ?? $prod['regular_price'];
+                ?>
+                <div class="col-6 col-md-4">
+                    <div class="card product-card h-100 <?php echo $is_combo ? 'border-purple-subtle shadow-xs' : ''; ?>">
+                        <div class="img-container">
+                            <div class="badge-overlay d-flex flex-column gap-1 align-items-start">
+                                <?php if ($is_combo): ?>
+                                    <span class="badge bg-purple rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;"><i class="bi bi-stars"></i> COMBO</span>
+                                <?php endif; ?>
+                                <?php if ($prod['offer_price']): ?>
+                                    <span class="badge bg-danger rounded-pill px-2 py-1 shadow-sm" style="font-size:10px;">OFFER</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="wishlist-overlay wishlist-toggle" data-product-id="<?php echo $prod['id']; ?>">
+                                <i class="bi bi-heart"></i>
+                            </div>
+                            <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
+                                <?php if ($prod['main_image']): ?>
+                                    <img src="uploads/<?php echo e($prod['main_image']); ?>" alt="<?php echo e($prod['name']); ?>" loading="lazy">
+                                <?php else: ?>
+                                    <div class="w-100 h-100 bg-secondary d-flex align-items-center justify-content-center text-white"><i class="bi bi-image fs-1"></i></div>
+                                <?php endif; ?>
+                            </a>
+                        </div>
+                        <div class="product-details text-center">
+                            <span class="product-category <?php echo $is_combo ? 'text-purple fw-semibold' : ''; ?>">
+                                <?php if ($is_combo): ?><i class="bi bi-stars text-warning me-1"></i><?php endif; ?>
+                                <?php echo e($prod['category_name']); ?>
+                            </span>
+                            <a href="product-detail.php?slug=<?php echo e($prod['slug']); ?>">
+                                <h6 class="product-title text-truncate-2"><?php echo e($prod['name']); ?></h6>
+                            </a>
+                            <div class="price-container justify-content-center">
+                                <span class="price-regular"><?php echo format_price($current_price); ?></span>
+                                <?php if ($prod['offer_price']): ?>
+                                    <span class="price-original"><?php echo format_price($prod['regular_price']); ?></span>
+                                <?php endif; ?>
                             </div>
                         </div>
+                    </div>
+                </div>
+                <?php
+            };
+            ?>
+
+            <?php if (empty($products)): ?>
+                <!-- No matching items state -->
+                <div class="text-center py-5 bg-white rounded-3 shadow-sm my-2">
+                    <div class="fs-1 text-muted"><i class="bi bi-emoji-frown"></i></div>
+                    <h4 class="fw-bold mt-3">No matching items found</h4>
+                    <p class="text-muted small">Try broadening your filter criteria or adjusting tags.</p>
+                    <a href="products.php" class="btn btn-sm btn-brand mt-2">Clear All Filters</a>
+                </div>
+
+            <?php elseif (!empty($single_products) && !empty($combo_products)): ?>
+                <!-- CASE 1: BOTH Single and Combo items present -> Display two stacked sections with quick-jump pills -->
+                
+                <!-- Quick Jump Navigation Bar -->
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 pb-2 border-bottom">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="small text-muted fw-medium d-none d-sm-inline">Quick Jump:</span>
+                        <a href="#single-items-section" class="badge bg-white text-dark border text-decoration-none px-3 py-2 rounded-pill shadow-xs">
+                            <i class="bi bi-tag text-rose me-1"></i> Single Styles (<?php echo count($single_products); ?>)
+                        </a>
+                        <a href="#combo-items-section" class="badge bg-purple-subtle text-purple border text-decoration-none px-3 py-2 rounded-pill shadow-xs">
+                            <i class="bi bi-stars text-warning me-1"></i> Value Combos (<?php echo count($combo_products); ?>) &darr;
+                        </a>
+                    </div>
+                    <div class="small text-muted">
+                        Showing <?php echo count($products); ?> total styles
+                    </div>
+                </div>
+
+                <!-- SECTION 1: Single Items Grid -->
+                <div id="single-items-section" class="mb-5" style="scroll-margin-top: 90px;">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <div>
+                            <h5 class="fw-bold mb-0 text-dark">
+                                <i class="bi bi-tag text-rose me-2"></i>Individual Styles
+                            </h5>
+                            <small class="text-muted">Single pieces &amp; individual color choices</small>
+                        </div>
+                        <span class="badge bg-light text-dark border px-3 py-1 rounded-pill">
+                            <?php echo count($single_products); ?> <?php echo count($single_products) === 1 ? 'Style' : 'Styles'; ?>
+                        </span>
+                    </div>
+                    
+                    <div class="row g-3 g-md-4">
+                        <?php foreach ($single_products as $prod): ?>
+                            <?php $render_product_card($prod); ?>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+                <!-- SECTION 2: Value Combos & Sets Grid -->
+                <div id="combo-items-section" class="pt-4 border-top" style="scroll-margin-top: 90px;">
+                    <!-- Engaging Combo Promotion Banner -->
+                    <div class="card border-0 shadow-sm p-3 p-md-4 mb-4" style="background: linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%); border-left: 5px solid #7b2cbf !important; border-radius: 14px;">
+                        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="badge bg-purple rounded-pill px-3 py-1 shadow-sm" style="font-size: 11px;">
+                                        <i class="bi bi-stars me-1"></i> BUNDLE &amp; SAVE
+                                    </span>
+                                    <span class="small text-purple fw-semibold">Value Combos &amp; Curated Packs</span>
+                                </div>
+                                <h5 class="fw-bold mb-1 text-dark">Matching Multi-Packs &amp; Sets</h5>
+                                <p class="text-muted small mb-0">Get matching sets, multi-packs, and curated combinations for greater savings.</p>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-white text-dark border px-3 py-2 rounded-pill fs-6 shadow-xs">
+                                    <?php echo count($combo_products); ?> Combo <?php echo count($combo_products) === 1 ? 'Pack' : 'Packs'; ?>
+                                </span>
+                                <a href="#single-items-section" class="btn btn-sm btn-outline-secondary rounded-pill d-none d-md-inline-block px-3" title="Back to single items">
+                                    <i class="bi bi-arrow-up me-1"></i> Back to Singles
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 g-md-4">
+                        <?php foreach ($combo_products as $prod): ?>
+                            <?php $render_product_card($prod); ?>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
+            <?php elseif (!empty($combo_products)): ?>
+                <!-- CASE 2: Only Combos are present (e.g. user clicked Combos menu) -->
+                <div class="row g-3 g-md-4">
+                    <?php foreach ($combo_products as $prod): ?>
+                        <?php $render_product_card($prod); ?>
                     <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
+                </div>
+
+            <?php else: ?>
+                <!-- CASE 3: Only Single items are present -->
+                <div class="row g-3 g-md-4">
+                    <?php foreach ($single_products as $prod): ?>
+                        <?php $render_product_card($prod); ?>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>
