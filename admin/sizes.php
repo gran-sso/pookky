@@ -90,6 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch sizes configured
 $sizes = $pdo->query("SELECT * FROM sizes ORDER BY category_type ASC, id ASC")->fetchAll();
 sort_sizes($sizes, true);
+
+// Compute category counts for filter tabs
+$category_counts = [];
+foreach ($sizes as $s) {
+    $c_type = trim($s['category_type'] ?: 'Other');
+    $category_counts[$c_type] = ($category_counts[$c_type] ?? 0) + 1;
+}
+ksort($category_counts);
 ?>
 
 <div class="row g-4">
@@ -138,7 +146,31 @@ sort_sizes($sizes, true);
     <!-- Sizes Listing Table -->
     <div class="col-12 col-md-8">
         <div class="card border-0 shadow-sm p-4 bg-white" style="border-radius: 12px;">
-            <h5 class="fw-bold mb-3">Configured Size Templates</h5>
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h5 class="fw-bold mb-0">Configured Size Templates</h5>
+                    <small class="text-muted" id="sizeCountBadge">Showing <?php echo count($sizes); ?> of <?php echo count($sizes); ?> sizes</small>
+                </div>
+                <div class="input-group" style="max-width: 260px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="sizeSearchInput" class="form-control border-start-0 ps-0" placeholder="Search size or code...">
+                    <button class="btn btn-outline-secondary border-start-0" type="button" id="clearSizeSearch" style="display:none;" title="Clear search">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div class="d-flex flex-wrap gap-1 mb-3 pb-2 border-bottom" id="sizeCategoryFilter">
+                <button type="button" class="btn btn-sm btn-dark rounded-pill px-3 py-1 size-cat-btn active" data-category="all">
+                    All <span class="badge bg-white text-dark ms-1"><?php echo count($sizes); ?></span>
+                </button>
+                <?php foreach ($category_counts as $cat_name => $count): ?>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 size-cat-btn" data-category="<?php echo e($cat_name); ?>">
+                        <?php echo e($cat_name); ?> <span class="badge bg-secondary ms-1"><?php echo $count; ?></span>
+                    </button>
+                <?php endforeach; ?>
+            </div>
             
             <?php if (!empty($error) && (isset($_POST['delete_size']) || isset($_POST['edit_size']))): ?>
                 <div class="alert alert-danger p-2 small"><?php echo e($error); ?></div>
@@ -162,7 +194,9 @@ sort_sizes($sizes, true);
                             </tr>
                         <?php else: ?>
                             <?php foreach ($sizes as $sz): ?>
-                                <tr>
+                                <tr class="size-table-row" 
+                                    data-category="<?php echo e(strtolower($sz['category_type'])); ?>" 
+                                    data-search="<?php echo e(strtolower($sz['category_type'] . ' ' . $sz['size_name'] . ' ' . $sz['size_code'] . ' ' . $sz['id'])); ?>">
                                     <td><?php echo $sz['id']; ?></td>
                                     <td><span class="badge bg-secondary"><?php echo e($sz['category_type']); ?></span></td>
                                     <td><span class="fw-bold text-dark"><?php echo e($sz['size_name']); ?></span></td>
@@ -189,6 +223,15 @@ sort_sizes($sizes, true);
                                     </td>
                                 </tr>
                             <?php endforeach; ?>
+                            <tr id="noSizesMatchRow" style="display: none;">
+                                <td colspan="5" class="text-center text-muted py-4">
+                                    <i class="bi bi-funnel text-secondary fs-4 d-block mb-2"></i>
+                                    No sizes found matching your filter or search.
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3" id="resetSizeFilterBtn">Reset Filters</button>
+                                    </div>
+                                </td>
+                            </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -285,6 +328,98 @@ document.addEventListener('DOMContentLoaded', function() {
             editModal.show();
         });
     });
+
+    // Live filtering and search for sizes
+    const searchInput = document.getElementById('sizeSearchInput');
+    const clearSearchBtn = document.getElementById('clearSizeSearch');
+    const catButtons = document.querySelectorAll('.size-cat-btn');
+    const sizeRows = document.querySelectorAll('.size-table-row');
+    const noMatchRow = document.getElementById('noSizesMatchRow');
+    const countBadge = document.getElementById('sizeCountBadge');
+    const resetBtn = document.getElementById('resetSizeFilterBtn');
+
+    let currentCategory = 'all';
+    let currentSearch = '';
+
+    function filterSizes() {
+        let visibleCount = 0;
+        const search = (currentSearch || '').toLowerCase().trim();
+        const cat = (currentCategory || 'all').toLowerCase().trim();
+
+        sizeRows.forEach(row => {
+            const rowCat = (row.getAttribute('data-category') || '').toLowerCase().trim();
+            const rowSearch = (row.getAttribute('data-search') || '').toLowerCase();
+
+            const matchesCat = (cat === 'all') || (rowCat === cat);
+            const matchesSearch = !search || rowSearch.includes(search);
+
+            if (matchesCat && matchesSearch) {
+                row.style.display = '';
+                visibleCount++;
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        if (noMatchRow) {
+            noMatchRow.style.display = (visibleCount === 0 && sizeRows.length > 0) ? '' : 'none';
+        }
+
+        if (countBadge) {
+            countBadge.textContent = `Showing ${visibleCount} of ${sizeRows.length} sizes`;
+        }
+
+        if (clearSearchBtn) {
+            clearSearchBtn.style.display = search ? '' : 'none';
+        }
+    }
+
+    catButtons.forEach(btn => {
+        btn.addEventListener('click', function() {
+            catButtons.forEach(b => {
+                b.classList.remove('btn-dark', 'active');
+                b.classList.add('btn-outline-secondary');
+            });
+            this.classList.remove('btn-outline-secondary');
+            this.classList.add('btn-dark', 'active');
+            currentCategory = this.getAttribute('data-category') || 'all';
+            filterSizes();
+        });
+    });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            currentSearch = this.value;
+            filterSizes();
+        });
+    }
+
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', function() {
+            if (searchInput) searchInput.value = '';
+            currentSearch = '';
+            filterSizes();
+            if (searchInput) searchInput.focus();
+        });
+    }
+
+    if (resetBtn) {
+        resetBtn.addEventListener('click', function() {
+            if (searchInput) searchInput.value = '';
+            currentSearch = '';
+            currentCategory = 'all';
+            catButtons.forEach(b => {
+                if (b.getAttribute('data-category') === 'all') {
+                    b.classList.remove('btn-outline-secondary');
+                    b.classList.add('btn-dark', 'active');
+                } else {
+                    b.classList.remove('btn-dark', 'active');
+                    b.classList.add('btn-outline-secondary');
+                }
+            });
+            filterSizes();
+        });
+    }
 });
 </script>
 
