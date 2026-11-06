@@ -1,0 +1,33 @@
+# robots.txt for Pookky (pookky.com)
+# Directives for search engine web crawlers (Googlebot, Bingbot, etc.)
+
+User-agent: *
+Allow: /
+Allow: /assets/
+Allow: /uploads/
+
+# Disallow administrative, internal, API, and sensitive checkout routes
+Disallow: /admin/
+Disallow: /api/
+Disallow: /scratch/
+Disallow: /cart.php
+Disallow: /process-cart.php
+Disallow: /checkout.php
+Disallow: /order-success.php
+Disallow: /dashboard.php
+Disallow: /orders.php
+Disallow: /order-detail.php
+Disallow: /addresses.php
+Disallow: /wishlist.php
+Disallow: /login.php
+Disallow: /register.php
+Disallow: /verify-otp.php
+Disallow: /logout.php
+Disallow: /process-razorpay.php
+Disallow: /razorpay-webhook.php
+Disallow: /razorpay-test.php
+Disallow: /*.sql$
+Disallow: /*.zip$
+
+# Google XML Sitemap Location
+Sitemap: https://pookky.com/sitemap.xml

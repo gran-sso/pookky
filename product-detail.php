@@ -32,8 +32,53 @@ try {
     $meta_title = !empty($product['seo_title']) ? $product['seo_title'] : ($product['name'] . ' | ' . APP_NAME);
     $meta_desc = !empty($product['seo_description']) ? $product['seo_description'] : substr(strip_tags($product['description'] ?? ''), 0, 160);
 
-    require_once __DIR__ . '/includes/header.php';
+    // Fetch primary image for OpenGraph / WhatsApp / Social Share Preview
+    $feat_img_stmt = $pdo->prepare("SELECT image_path FROM product_images WHERE product_id = ? ORDER BY is_featured DESC, sort_order ASC, id ASC LIMIT 1");
+    $feat_img_stmt->execute([$product_id]);
+    $feat_row = $feat_img_stmt->fetch();
+    $og_image = !empty($feat_row['image_path']) ? 'uploads/' . $feat_row['image_path'] : '';
+    $og_title = $meta_title;
+    $og_desc = $meta_desc;
+    $og_type = 'product';
+    $canonical_url = 'https://pookky.com/product-detail.php?slug=' . urlencode($slug);
 
+    require_once __DIR__ . '/includes/header.php';
+?>
+
+<!-- Google Rich Snippet (Schema.org Product & Offer Structured Data) -->
+<script type="application/ld+json">
+<?php
+$schema_price = !empty($product['offer_price']) ? (float)$product['offer_price'] : (float)$product['regular_price'];
+$schema_img = !empty($og_image) ? (strpos($og_image, 'http') === 0 ? $og_image : 'https://pookky.com/' . ltrim($og_image, '/')) : 'https://pookky.com/assets/images/logo.png';
+$schema_data = [
+    "@context" => "https://schema.org/",
+    "@type" => "Product",
+    "name" => $product['name'],
+    "image" => [ $schema_img ],
+    "description" => $meta_desc,
+    "sku" => $product['sku'] ?? ('PKY-' . $product['id']),
+    "brand" => [
+        "@type" => "Brand",
+        "name" => defined('SITE_NAME') ? SITE_NAME : 'Pookky'
+    ],
+    "offers" => [
+        "@type" => "Offer",
+        "url" => $canonical_url,
+        "priceCurrency" => "INR",
+        "price" => number_format($schema_price, 2, '.', ''),
+        "availability" => ($product['status'] == 1) ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+        "itemCondition" => "https://schema.org/NewCondition",
+        "seller" => [
+            "@type" => "Organization",
+            "name" => defined('COMPANY_LEGAL_NAME') ? COMPANY_LEGAL_NAME : (defined('SITE_NAME') ? SITE_NAME : 'Pookky')
+        ]
+    ]
+];
+echo json_encode($schema_data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);
+?>
+</script>
+
+<?php
     // Update SEO details dynamically
     // Fetch product images with color tagging
     $images_stmt = $pdo->prepare("

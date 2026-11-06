@@ -85,7 +85,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'festive_coupon_code',
                 'festive_coupon_discount',
                 'festive_btn_text',
-                'festive_btn_url'
+                'festive_btn_url',
+                'google_site_verification'
             ];
 
             foreach ($keys as $key) {
@@ -447,6 +448,14 @@ $festive_btn_url = get_setting('festive_btn_url', 'products.php?type=combo');
                                     <label for="return_window_days">Return Window (Days)</label>
                                 </div>
                                 <div class="form-text small text-muted">Eligible return and exchange period after order delivery.</div>
+                            </div>
+
+                            <div class="col-12 col-md-6">
+                                <div class="form-floating">
+                                    <input type="text" class="form-control" id="google_site_verification" name="google_site_verification" value="<?php echo e(get_setting('google_site_verification', '')); ?>" placeholder="Google Search Console Verification Tag">
+                                    <label for="google_site_verification"><i class="bi bi-google text-danger me-1"></i> Google Search Console Verification Code</label>
+                                </div>
+                                <div class="form-text small text-muted">HTML verification code string provided by Google Search Console.</div>
                             </div>
 
                             <div class="col-12 col-md-6">

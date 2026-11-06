@@ -117,6 +117,35 @@ switch ($theme_font_pairing) {
         $font_ui_css = "'CurrencySafe', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
         break;
 }
+
+// Dynamic SEO & Social Sharing Tags
+$current_protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || ($_SERVER['SERVER_PORT'] ?? 80) == 443) ? 'https://' : 'http://';
+$current_host = $_SERVER['HTTP_HOST'] ?? 'pookky.com';
+if (strpos($current_host, 'pookky.com') !== false) {
+    $base_origin = 'https://pookky.com';
+} else {
+    $base_origin = rtrim($current_protocol . $current_host, '/');
+}
+
+$current_uri = $_SERVER['REQUEST_URI'] ?? '/';
+$canonical_url = isset($canonical_url) ? $canonical_url : ($base_origin . strtok($current_uri, '?'));
+
+$page_og_title = isset($og_title) ? $og_title : (isset($meta_title) ? $meta_title : SITE_NAME . ' | Premium Ladies\' Innerwear');
+$page_og_desc = isset($og_desc) ? $og_desc : (isset($meta_desc) ? $meta_desc : 'Discover premium comfort, elegant fits, and luxurious fabrics with Pookky innerwear.');
+$page_og_type = isset($og_type) ? $og_type : 'website';
+
+$default_share_img = $base_origin . '/assets/images/logo.png';
+if (isset($og_image) && !empty($og_image)) {
+    if (strpos($og_image, 'http') === 0) {
+        $page_og_image = $og_image;
+    } else {
+        $page_og_image = $base_origin . '/' . ltrim($og_image, '/');
+    }
+} else {
+    $page_og_image = $default_share_img;
+}
+
+$google_site_verification = get_setting('google_site_verification', '');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -125,6 +154,27 @@ switch ($theme_font_pairing) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($meta_title) ? e($meta_title) : SITE_NAME . ' | Premium Ladies\' Innerwear'; ?></title>
     <meta name="description" content="<?php echo isset($meta_desc) ? e($meta_desc) : 'Discover premium comfort, elegant fits, and luxurious fabrics with Pookky innerwear.'; ?>">
+    <link rel="canonical" href="<?php echo e($canonical_url); ?>">
+    
+    <!-- Open Graph (Facebook, WhatsApp, Instagram & Social Link Previews) -->
+    <meta property="og:type" content="<?php echo e($page_og_type); ?>">
+    <meta property="og:title" content="<?php echo e($page_og_title); ?>">
+    <meta property="og:description" content="<?php echo e($page_og_desc); ?>">
+    <meta property="og:image" content="<?php echo e($page_og_image); ?>">
+    <meta property="og:url" content="<?php echo e($canonical_url); ?>">
+    <meta property="og:site_name" content="<?php echo e(SITE_NAME); ?>">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?php echo e($page_og_title); ?>">
+    <meta name="twitter:description" content="<?php echo e($page_og_desc); ?>">
+    <meta name="twitter:image" content="<?php echo e($page_og_image); ?>">
+
+    <?php if (!empty($google_site_verification)): ?>
+    <!-- Google Search Console Verification Meta Tag -->
+    <meta name="google-site-verification" content="<?php echo e($google_site_verification); ?>">
+    <?php endif; ?>
+
     <meta name="csrf-token" content="<?php echo generate_csrf_token(); ?>">
     <link rel="icon" type="image/png" href="assets/images/logo.png">
     <!-- Preconnect for Critical External CDNs -->

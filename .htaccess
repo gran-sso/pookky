@@ -160,10 +160,15 @@ Options -Indexes
 </FilesMatch>
 
 # ------------------------------------------------------------------------------
-# 6. API Route Rewrites for Razorpay Endpoints
+# 6. SEO & API Route Rewrites
 # ------------------------------------------------------------------------------
 <IfModule mod_rewrite.c>
     RewriteEngine On
+
+    # Dynamic XML Sitemap for Search Engines
+    RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+    # API Endpoints
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteRule ^api/create-order/?$ api/create-order.php [L,QSA]
